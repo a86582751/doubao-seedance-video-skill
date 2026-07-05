@@ -108,6 +108,136 @@ def ffprobe_has_audio(path: Path) -> bool:
     return bool(result.stdout.strip())
 
 
+def expand_edl_segments(clips: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    segments: list[dict[str, Any]] = []
+    for source_index, item in enumerate(clips, 1):
+        ranges = item.get("keep_ranges")
+        if isinstance(ranges, list) and ranges:
+            for range_index, keep_range in enumerate(ranges, 1):
+                segment = dict(item)
+                segment["source_index"] = source_index
+                segment["range_index"] = range_index
+                segment["start"] = keep_range.get("start", item.get("start", 0))
+                segment["end"] = keep_range.get("end", item.get("end"))
+                segment["beat"] = keep_range.get("reason", item.get("beat", item.get("reason", "")))
+                segments.append(segment)
+        else:
+            segment = dict(item)
+            segment["source_index"] = source_index
+            segment["range_index"] = 1
+            segments.append(segment)
+    return segments
+
+
+def source_duration(path_text: str, fallback: Any = None) -> float | None:
+    try:
+        return ffprobe_duration(Path(path_text))
+    except Exception:
+        if fallback is None:
+            return None
+        try:
+            return float(fallback)
+        except (TypeError, ValueError):
+            return None
+
+
+def build_edl_summary(edl: dict[str, Any]) -> dict[str, Any]:
+    clips = edl.get("clips")
+    if not isinstance(clips, list) or not clips:
+        raise ValueError("EDL JSON must contain a non-empty clips array.")
+    segments = expand_edl_segments(clips)
+    if not segments:
+        raise ValueError("EDL contained clips, but no editable segments were found.")
+
+    timeline: list[dict[str, Any]] = []
+    output_cursor = 0.0
+    kept_by_path: dict[str, list[tuple[float, float]]] = {}
+    sources: dict[str, dict[str, Any]] = {}
+    for item in segments:
+        path = str(Path(item["path"]))
+        start = float(item.get("start", 0))
+        end = float(item["end"])
+        if end <= start:
+            raise ValueError(f"Clip has invalid start/end: {start}/{end}")
+        duration = end - start
+        source_info = sources.setdefault(path, {
+            "path": path,
+            "source_index": item.get("source_index"),
+            "duration": source_duration(path, item.get("source_duration") or item.get("duration")),
+        })
+        source_info["duration"] = source_info.get("duration") or source_duration(path, item.get("source_duration") or item.get("duration"))
+        kept_by_path.setdefault(path, []).append((start, end))
+        timeline.append({
+            "output_start": round(output_cursor, 3),
+            "output_end": round(output_cursor + duration, 3),
+            "duration": round(duration, 3),
+            "source_path": path,
+            "source_index": item.get("source_index"),
+            "range_index": item.get("range_index", 1),
+            "source_start": round(start, 3),
+            "source_end": round(end, 3),
+            "beat": item.get("beat", item.get("reason", "")),
+            "keep_reason": item.get("reason", item.get("keep_reason", "")),
+        })
+        output_cursor += duration
+
+    omitted_by_source: list[dict[str, Any]] = []
+    for path, info in sources.items():
+        duration = info.get("duration")
+        kept_ranges = sorted(kept_by_path.get(path, []))
+        omitted: list[dict[str, Any]] = []
+        cursor = 0.0
+        for start, end in kept_ranges:
+            if start > cursor:
+                omitted.append({"start": round(cursor, 3), "end": round(start, 3), "duration": round(start - cursor, 3)})
+            cursor = max(cursor, end)
+        if duration is not None and duration > cursor:
+            omitted.append({"start": round(cursor, 3), "end": round(duration, 3), "duration": round(duration - cursor, 3)})
+        omitted_by_source.append({
+            "path": path,
+            "source_index": info.get("source_index"),
+            "source_duration": round(duration, 3) if duration is not None else None,
+            "kept_ranges": [{"start": round(start, 3), "end": round(end, 3), "duration": round(end - start, 3)} for start, end in kept_ranges],
+            "omitted_ranges": omitted,
+        })
+
+    return {
+        "output": edl.get("output"),
+        "total_duration": round(output_cursor, 3),
+        "timeline": timeline,
+        "omitted_by_source": omitted_by_source,
+    }
+
+
+def build_audio_prompt(summary: dict[str, Any], story: str, style: str) -> str:
+    lines = [
+        f"为最终剪辑生成一条连续完整音频，总时长约 {summary['total_duration']} 秒。",
+        "音频必须按最终时间线设计，不要按原始分段各自起落；保持环境声、低频、混响、音乐情绪和动态连续。",
+    ]
+    if style:
+        lines.append(f"整体声音风格：{style}")
+    if story:
+        lines.append(f"故事/画面意图：{story}")
+    lines.append("最终保留画面时间线：")
+    for item in summary["timeline"]:
+        beat = item.get("beat") or item.get("keep_reason") or "根据画面动作设计对应环境声和拟音"
+        lines.append(
+            f"- {item['output_start']:.3f}-{item['output_end']:.3f}s："
+            f"来自源片段{item.get('source_index')}的{item['source_start']:.3f}-{item['source_end']:.3f}s，{beat}"
+        )
+    removed: list[str] = []
+    for source in summary["omitted_by_source"]:
+        for item in source["omitted_ranges"]:
+            if item["duration"] > 0.05:
+                removed.append(
+                    f"源片段{source.get('source_index')}的{item['start']:.3f}-{item['end']:.3f}s"
+                )
+    if removed:
+        lines.append("这些被 EDL 裁掉的画面不要在音频里表现，也不要为其保留声效高潮或转场：" + "；".join(removed) + "。")
+    lines.append("不要旁白，除非故事明确要求；不要突然重置声场；在剪辑点用自然延续、轻微声桥或环境声过渡遮住视觉切点。")
+    return "\n".join(lines)
+
+
 def safe_stem(index: int, path: Path) -> str:
     return f"clip{index:02d}_{''.join(ch if ch.isalnum() or ch in '._-' else '_' for ch in path.stem)[:48]}"
 
@@ -215,18 +345,7 @@ def command_apply_edl(args: argparse.Namespace) -> int:
     output.parent.mkdir(parents=True, exist_ok=True)
 
     cmd = [ffmpeg, "-y"]
-    segments: list[dict[str, Any]] = []
-    for item in clips:
-        ranges = item.get("keep_ranges")
-        if isinstance(ranges, list) and ranges:
-            for keep_range in ranges:
-                segment = dict(item)
-                segment["start"] = keep_range.get("start", item.get("start", 0))
-                segment["end"] = keep_range.get("end", item.get("end"))
-                segment["beat"] = keep_range.get("reason", item.get("beat", item.get("reason", "")))
-                segments.append(segment)
-        else:
-            segments.append(item)
+    segments = expand_edl_segments(clips)
     if not segments:
         raise ValueError("EDL contained clips, but no editable segments were found.")
     for item in segments:
@@ -274,6 +393,19 @@ def command_apply_edl(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_summarize_edl(args: argparse.Namespace) -> int:
+    edl = json.loads(args.edl.read_text(encoding="utf-8-sig"))
+    summary = build_edl_summary(edl)
+    summary["audio_prompt"] = build_audio_prompt(summary, args.story, args.audio_style)
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(json.dumps({"summary": str(args.output), "total_duration": summary["total_duration"]}, ensure_ascii=False, indent=2))
+    else:
+        print(json.dumps(summary, ensure_ascii=False, indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Prepare dense frame review packs and apply assembly EDLs for Seedance clips.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -298,6 +430,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     apply_edl.add_argument("--audio-bitrate", default="160k")
     apply_edl.set_defaults(func=command_apply_edl)
+
+    summarize_edl = sub.add_parser("summarize-edl", help="Summarize kept and omitted EDL ranges for final unified audio design.")
+    summarize_edl.add_argument("--edl", type=Path, required=True)
+    summarize_edl.add_argument("--output", type=Path, default=None)
+    summarize_edl.add_argument("--story", default="", help="Short story or scene intent to include in the generated audio prompt.")
+    summarize_edl.add_argument("--audio-style", default="", help="Overall sound-design style for the generated audio prompt.")
+    summarize_edl.set_defaults(func=command_summarize_edl)
     return parser
 
 

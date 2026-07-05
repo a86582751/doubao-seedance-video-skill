@@ -9,7 +9,7 @@ Use this skill for Doubao Seedance 2.0 video generation through Volcano Ark. Whe
 
 For narrative videos with named recurring human characters, treat visual consistency planning as part of the video task. If the request includes multiple characters, a roleplay/story adaptation, a world or character setting document, continuous segments, or visually important outfits/props, create Seedream reference images before Seedance unless the user explicitly asks for pure text-to-video.
 
-Treat audio as a required part of video delivery by default. For a single generated clip, use Seedance native audio by default. For multi-segment chains or concatenated videos, do not treat audio as a late global BGM layer. First lock usable visual candidate clips, then give each candidate clip its own matching audio bed (Seedance native audio or `doubao-seed-audio`) and mux that audio into the candidate clip before final EDL assembly. The final EDL must trim video and audio together. Use a single whole-film soundtrack only when the user explicitly asks for one continuous score/voiceover, or when all segment audio is intentionally discarded and the final visual edit is already locked. Skip audio only when the user explicitly asks for no audio, a silent video, muted output, or visual-only output.
+Treat audio as a required part of video delivery by default. For a single generated clip, use Seedance native audio by default. For multi-segment chains or concatenated videos, do not solve audio by giving each segment an isolated sound bed; that recreates the same cut-to-cut audio reset problem as Seedance native per-segment audio. The default long-video route is visual-first: generate and review visual candidates, lock the final visual EDL, summarize what the EDL kept and omitted, then use `doubao-seed-audio` to generate one continuous soundtrack/ambience/Foley bed from the final timeline. Mux that unified audio onto the locked visual cut. Use per-segment Seed Audio only for true isolated scenes, dialogue stems that must be timed separately, or when the final edit intentionally wants hard audio resets. Skip audio only when the user explicitly asks for no audio, a silent video, muted output, or visual-only output.
 
 For long video, multi-role, or multi-reference-image workflows, keep the main thread's context lean. Do not call image-viewing tools on high-resolution generated/reference images in the main thread. For each visual QA pass, start a fresh disposable subagent, give it only the image path(s) and the checklist, let it inspect images in its own context, and have it return a short text-only verdict. Do not reuse visual-QA subagents across checks, because their own contexts can also bloat.
 
@@ -22,7 +22,7 @@ Phase map:
 - Prompt writing: read `references/prompt-optimizer.md`.
 - Character/reference-image QA: use a disposable subagent with the image checklist in this file.
 - Generated segment QA: read `references/visual-review-standards.md`; decide accept, trim handles, or regenerate.
-- Final multi-clip assembly: read `references/clip-assembly-workflow.md`; produce beat map, boundary decisions, EDL, and FFmpeg output.
+- Final multi-clip assembly: read `references/clip-assembly-workflow.md`; produce beat map, boundary decisions, visual EDL, EDL audio summary, unified audio, and FFmpeg output.
 - FFmpeg details: read `C:\Users\isund\.agents\skills\ffmpeg\SKILL.md` only when the edit needs more than simple hard cuts or export defaults.
 
 ## Tool
@@ -224,9 +224,10 @@ Use the official rules to produce a final prompt that can be passed directly to 
 9. Before final delivery of any multi-segment video, run a final disposable-subagent editing pass. This is required for multi-clip delivery; do not replace it with main-thread contact-sheet inspection:
    - Read `references/clip-assembly-workflow.md` and include its beat map, boundary classification, join-technique selection, montage rules, and EDL boundary schema in the subagent brief.
    - Prepare dense frames/contact sheets for all candidate clips with `scripts/video_review_tools.py pack`.
-   - Use the audio-first assembly route by default: after visual candidate clips pass segment QA, generate or preserve per-segment audio, mux that audio into each candidate clip, then pack and submit those audio-bearing clips to the final assembly subagent. The EDL should trim video and audio together.
+   - Use the visual-first, unified-audio route by default: after visual candidate clips pass segment QA, submit visual candidates to the final assembly subagent and lock a visual EDL before generating long-form audio.
    - Ask the subagent to produce an edit decision list (EDL) JSON: each clip path, trim `start`, trim `end`, keep reason, repeated/defective material removed, boundary type, join technique, boundary risk, and regenerate recommendation.
-   - The EDL paths should point to the audio-bearing candidate clips when audio exists. Ask the subagent to note audio continuity, micro-fades, J/L-cut opportunities, and whether a full-track audio regeneration is actually necessary.
+   - After the visual EDL is accepted, run `scripts/video_review_tools.py summarize-edl` to produce the final output timeline, each source range kept, each source range omitted, total duration, and a Seed Audio prompt skeleton. Use that summary to remove audio events for deleted visuals and to place continuous ambience/Foley/music-like motion on the retained final timeline only.
+   - Generate one coherent Seed Audio bed for the locked visual cut whenever the goal is continuous sound. Mux it onto the final visual cut. Use per-segment audio only when the EDL summary or story calls for deliberately separated acoustic spaces, exact dialogue stems, or scenes too different for one 120-second Seed Audio request.
    - The final-edit review must be story-aware, not only technical. Mark the cut as FAIL if it contains random-feeling quick cuts, unmotivated changes of subject, impossible spatial jumps, missing cause/effect between adjacent shots, emotional beats that vanish too quickly, or a montage that does not clearly read as intentional.
    - Apply the EDL with `scripts/video_review_tools.py apply-edl` or an equivalent FFmpeg command. For anything beyond simple hard cuts, read and use the installed `ffmpeg` skill from `C:\Users\isund\.agents\skills\ffmpeg` (`digitalsamba/claude-code-video-toolkit@ffmpeg`) for trim, concat, crossfade, audio mux, compression, and export patterns.
    - If the assembly subagent flags a clip as requiring regeneration, treat that as a phase change: close the assembly pass, run a new segment QA pass using `references/visual-review-standards.md`, rewrite that clip prompt, regenerate the clip, and repeat final assembly instead of delivering a polished cut with a broken scene.
@@ -234,9 +235,9 @@ Use the official rules to produce a final prompt that can be passed directly to 
 10. Use `status`, `list`, and `delete` for task management.
 11. Include audio unless the user explicitly requests no audio:
    - For one generated segment, use Seedance native audio by default when it fits the scene.
-   - For multi-segment chains, concatenated videos, or continuous short films, prefer per-segment audio before final EDL assembly. Generate each segment without native audio when practical, create a matching Seed Audio bed for each accepted candidate segment, mux each bed into its segment, then let the final EDL trim audio and video together.
-   - Preserve source/native audio when it already fits a generated clip; do not discard good segment audio just to regenerate a whole-film soundtrack.
-   - Use a single coherent whole-film audio track only after the final EDL is locked, or when the user explicitly wants one continuous score/voiceover/music bed. Never generate a whole-film audio track from the pre-EDL storyboard and then apply it unchanged to a trimmed cut.
+   - For multi-segment chains, concatenated videos, or continuous short films, default to no native segment audio during visual generation when practical, lock the final visual EDL first, then generate one unified Seed Audio track from the EDL summary.
+   - Preserve source/native audio only when it is specifically valuable and continuous enough to keep, such as a unique diegetic sound or dialogue take. Otherwise discard per-segment native ambience before final unified audio.
+   - Never generate a whole-film audio track from the pre-EDL storyboard and then apply it unchanged to a trimmed cut. Always derive the final audio prompt from the locked EDL's retained and omitted ranges.
    - For exact dialogue, narration, timed audio, separate stems, or post-production control, use the `doubao-seed-audio` skill and mux with FFmpeg.
 12. Store user-facing videos under the active thread `outputs` directory when possible.
 13. Report the local file path, audio/post-production path when separate, task ID, usage tokens, billing summary, visual-review verdict summary, EDL path when used, and remote URL expiry caveat. Do not expose signed URL secrets unless the user needs the direct link.
@@ -261,7 +262,7 @@ Rules:
 - Require boundary decisions. The subagent must explain every join between adjacent clips: boundary type, selected join technique, reason, and whether the join is acceptable or needs insert/regeneration.
 - Require narrative judgment, not just defect detection. The review must explicitly check whether each retained shot logically follows from the previous shot, whether the same subject/space/action is readable, and whether quick cuts are motivated as montage rather than accidental jumps.
 - Require proactive pickup judgment. Ask whether a short extra shot would make the result meaningfully better, not only whether regeneration is strictly necessary. Treat "recommended pickup" as actionable by default when it improves continuity and budget/time are not constrained.
-- For final assembly with audio, pass audio-bearing candidate clips to the subagent. Require the subagent to state whether EDL trims should preserve source audio, whether micro-fades/J-cuts/L-cuts are needed, and whether any whole-film audio regeneration is justified. Do not ask the subagent to evaluate a silent visual cut when the final deliverable should have segment-synchronized audio.
+- For final assembly, ask the subagent to make a visual EDL first and include enough `beat` / `reason` text for each retained range that `summarize-edl` can turn it into a usable Seed Audio prompt. Require the subagent to identify whether any source/native audio must be preserved as a special stem; otherwise assume final long-video ambience/Foley/music-like sound will be regenerated as one coherent track from the locked EDL.
 - Close the subagent after receiving its final result.
 
 Recommended segment-review prompt:
@@ -280,11 +281,11 @@ Recommended final-assembly prompt:
 ```text
 你是一次性视频审片/剪辑子代理。不要返回图片、base64、截图或长工具输出。
 先按 doubao-seedance-video/references/clip-assembly-workflow.md 判断每两个片段之间应该如何拼接。
-输入视频列表：<paths>。如果这些候选片段已经带音频，请把 EDL path 指向带音频版本，并保持音画同剪。
+输入视频列表：<paths>。请先做视觉剪辑，不要为了音频提前保留坏画面或坏裁点。
 请密集抽帧，判断重复、跳跃、坏帧、动作断裂、叙事连续性、空间连续性、情绪节奏、是否存在无逻辑快切。不要只做技术审片；如果 20 秒后类似“群众/旗帜/敬礼/大全景”之间没有明确因果或蒙太奇意图，应标为 FAIL 或建议重生/重剪。输出 EDL JSON，里面必须包含 clips 和 boundaries：每个 boundary 写明 boundary_type、join_technique、reason、risk、是否需要 insert 或 regenerate。然后用 FFmpeg 生成最终剪辑。
 请积极提出 pickup/insert 建议：只要 1-2 秒额外镜头能显著改善因果、空间、动作或音频连续性，就写入 regenerate/pickup 建议，不要因为当前版本勉强可读就省略。
-如果候选片段带音频，请检查音频连续性，说明是否保留分段原音、是否需要 0.05-0.15 秒微淡入淡出、是否需要 J-cut/L-cut；不要默认建议重做整条总音轨。
-最终只返回：PASS/FAIL、输出视频路径、EDL 路径、每段裁点摘要、叙事问题摘要、哪些片段建议重生或补拍。
+请在每个保留片段的 reason/beat 中写清楚画面正在发生什么、声音上应该发生什么；这些文本会被后续 EDL 摘要用于生成一条统一 Seed Audio 音轨。只有当源音频包含必须保留的特殊声音/对白时，才标记 preserve_source_audio。
+最终只返回：PASS/FAIL、输出视频路径、EDL 路径、每段裁点摘要、被裁掉内容摘要、叙事问题摘要、哪些片段建议重生或补拍。
 如果你认为某个源片段本身需要重生，只给出重生原因和 prompt_fix；不要在本次剪辑里强行遮掩它。
 ```
 
@@ -300,6 +301,12 @@ python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\video_review_t
 python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\video_review_tools.py apply-edl `
   --edl C:\path\visual_review_edl.json `
   --output C:\path\final_visual_cut.mp4
+
+python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\video_review_tools.py summarize-edl `
+  --edl C:\path\visual_review_edl.json `
+  --output C:\path\audio_timeline_summary.json `
+  --story "火箭升空、飞出大气层、折返坠毁在山谷建筑附近" `
+  --audio-style "电影级连续声场，低频推进、风噪、再入燃烧、远处冲击波，无旁白"
 ```
 
 `apply-edl` defaults to `--video-encoder auto`. Auto mode smoke-tests common hardware H.264 encoders (`h264_nvenc`, `h264_qsv`, `h264_amf`) and falls back to `libx264` when no hardware encoder works. Override when needed:
@@ -347,15 +354,17 @@ For best video consistency, ask Seedream for a clean front or three-quarter port
 Every delivered video should include audio unless the user explicitly asks for no audio, silent video, muted output, or visual-only output. Treat audio as part of the film, not a late optional attachment.
 
 - For a single generated clip, use Seedance native audio by default when it fits the scene.
-- For multi-segment chains, concatenated videos, or continuous short films, the default is audio-first EDL assembly:
+- For multi-segment chains, concatenated videos, or continuous short films, the default is locked-EDL unified audio:
   1. Generate or select acceptable visual candidate clips.
-  2. For each accepted candidate clip, preserve fitting native audio or generate a matching Seed Audio bed for that clip's full source duration.
-  3. Mux each clip's audio into that candidate clip before final assembly.
-  4. Give those audio-bearing clips to the final assembly subagent.
-  5. Apply the final EDL so the same start/end ranges trim video and audio together.
+  2. Run segment QA and final assembly on the visual material first.
+  3. Apply or lock the visual EDL.
+  4. Run `scripts/video_review_tools.py summarize-edl` on the EDL to extract the final timeline, retained ranges, omitted ranges, and a Seed Audio prompt skeleton.
+  5. Rewrite the generated audio prompt so it describes only the retained final timeline. Remove any sound event corresponding to omitted ranges, and add continuous acoustic transitions across visual cut points.
+  6. Generate one Seed Audio track for the locked visual duration, then mux it onto the final visual cut.
 - Use Seed Audio for ambience, Foley, sound effects, voiceover, dialogue, dubbing, reference-audio-guided voice style, subtitles/timestamps, music-like beds, or stronger timing control.
-- Use 0.05-0.15 second audio micro-fades at hard joins when ambience resets or clicks are audible. Use J-cuts/L-cuts when a sound bridges a motivated scene change. Read and apply the FFmpeg skill for these edits.
-- Generate a single whole-film audio track only when the final visual EDL is already locked, or when the user explicitly asks for one continuous soundtrack/voiceover/music bed. Do not use a storyboard-duration whole-film track for a later trimmed EDL cut.
+- Use 0.05-0.15 second audio micro-fades only for preserving or layering source stems. A unified Seed Audio bed should usually be muxed as one continuous track without artificial resets at visual cut points.
+- Generate a single whole-film audio track only from the final locked visual EDL, never from the pre-EDL storyboard.
+- Split audio into multiple Seed Audio requests only when the final duration exceeds Seed Audio limits, the film intentionally changes acoustic worlds, or exact dialogue/stems need separate timing. In that case, split by final timeline sections from the EDL summary, overlap adjacent sections by a short sound bridge, and crossfade the stems in FFmpeg.
 - Generate separate dialogue, ambience, Foley, or music-like stems only when the user asks for control or the scene needs it; otherwise prefer one conservative mixed prompt.
 
 ```powershell
@@ -368,9 +377,10 @@ If the user provides no audio direction, infer a fitting sound plan from the sce
 
 Audio anti-patterns:
 
-- Do not generate silent visual segments, perform EDL trims, then create one approximate full-length audio bed from the original segment plan unless the final EDL is already locked and the user wants that style.
+- Do not generate per-segment audio beds as the default answer to long-video audio continuity. That usually preserves the segment boundary problem.
+- Do not generate a full-length audio bed from the original storyboard or segment plan before the EDL is locked.
 - Do not apply a pre-EDL whole-film soundtrack unchanged after subagent trims changed segment durations.
-- Do not replace good per-segment audio with a global bed merely for simplicity.
+- Do not let sound effects for deleted visuals survive into the final soundtrack. Use `summarize-edl` to see what was cut before writing the Seed Audio prompt.
 
 ## Notes
 
