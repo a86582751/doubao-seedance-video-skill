@@ -63,6 +63,18 @@ Supported variables:
 - `SEEDANCE_SERVICE_TIER`, optional
 - `SEEDANCE_CALLBACK_URL`, optional
 
+Use a Volcano Ark API key for Seedance and Seedream. Ark key source:
+
+```text
+https://ark.volcengine.com/region:cn-beijing/apiKey?apikey=%7B%7D
+```
+
+Do not use the Volcano Speech/OpenSpeech API key as `SEEDANCE_API_KEY`. Seed Audio uses a separate Speech key from:
+
+```text
+https://console.volcengine.com/speech/new/setting/apikeys?projectName=default
+```
+
 Never print full API keys. When checking configuration, use `--show-config --dry-run`, which masks secrets.
 
 ## Common Commands

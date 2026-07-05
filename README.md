@@ -105,6 +105,27 @@ Required:
 SEEDANCE_API_KEY=your_volcano_ark_api_key
 ```
 
+### API Key Sources
+
+Volcano uses different API keys for different product families. Do not mix them:
+
+- **Seedance 2.0 / Fast / Mini:** use the Volcano Ark key from https://ark.volcengine.com/region:cn-beijing/apiKey?apikey=%7B%7D
+- **Seedream 5.0 Lite / image models:** use the same Volcano Ark key from https://ark.volcengine.com/region:cn-beijing/apiKey?apikey=%7B%7D
+- **Seed Audio / OpenSpeech audio generation:** use the Speech console key from https://console.volcengine.com/speech/new/setting/apikeys?projectName=default
+
+Recommended local files:
+
+```text
+~/.codex/seedance.env  # Ark key: SEEDANCE_API_KEY or ARK_API_KEY
+~/.codex/speech.env    # Speech key: SEED_AUDIO_API_KEY or SPEECH_API_KEY
+```
+
+Environment variable split:
+
+- Seedance CLI: `SEEDANCE_API_KEY`, fallback `ARK_API_KEY`.
+- Seedream companion skill: `SEEDREAM_API_KEY`, `ARK_API_KEY`, or `SEEDANCE_API_KEY`.
+- Seed Audio companion skill: `SEED_AUDIO_API_KEY`, fallback `SPEECH_API_KEY`; it does not use `SEEDANCE_API_KEY` as the audio key.
+
 Optional:
 
 ```text
