@@ -1,0 +1,34 @@
+# secrets
+.env
+*.env
+seedance.env
+*.key
+*.pem
+
+# generated media and working files
+outputs/
+work/
+*.mp4
+*.mov
+*.mkv
+*.webm
+*.mp3
+*.wav
+*.aac
+*.jpg
+*.jpeg
+*.png
+*.webp
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

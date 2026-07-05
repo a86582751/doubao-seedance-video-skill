@@ -1,0 +1,3 @@
+display_name: Doubao Seedance Video
+short_description: Generate Seedance 2.0 videos.
+default_prompt: Generate a Seedance 2.0 video from this prompt and download the result.
