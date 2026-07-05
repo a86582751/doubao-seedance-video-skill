@@ -1,5 +1,7 @@
 # Agentic Long-Video Studio for Codex + Doubao Seedance
 
+[中文说明](README.zh-CN.md)
+
 Turn one plain-language idea into a finished AI short film, with Codex acting less like a thin API wrapper and more like a small production crew: storyboarder, prompt engineer, visual QA reviewer, pickup director, offline editor, and audio post supervisor.
 
 This skill is built for the messy middle of long AI video creation: clips fail, continuity drifts, transitions need pickups, native per-clip audio resets, and the final edit changes the timing. The workflow handles those problems explicitly with disposable subagent review, regenerate-or-pickup loops, EDL-based final cutting, and storyboard-aware Seed Audio post-production.
@@ -7,6 +9,12 @@ This skill is built for the messy middle of long AI video creation: clips fail, 
 It supports Volcano Ark Doubao Seedance 2.0, Seedance 2.0 Fast, and Seedance 2.0 Mini.
 
 Keywords: agentic AI video studio, natural-language long video, Codex video agent, OpenAI Codex skill, Doubao Seedance 2.0, Volcano Ark, AI short film, story-to-video, text-to-video, image-to-video, subagent visual review, AI pickup shots, EDL editing, Seed Audio post-production, coherent soundtrack, dialogue, ambience, Foley, FFmpeg video editing, prompt optimization, resource package cost estimate.
+
+## Long-Term Ambition
+
+我们的目标是：一键生成《星际穿越2》，且无需任何人工干预和专业影视制作、剪辑知识（虽然目前看上去还很遥远）。
+
+In practical terms, this means pushing Codex from "call a video API once" toward an autonomous production system that can understand a story, plan shots, generate and review clips, request pickups, edit the cut, design the final audio, check budget safety, and export a watchable film with as little human intervention as possible.
 
 ## The Promise
 
