@@ -9,13 +9,13 @@ Use this skill for Doubao Seedance 2.0 video generation through Volcano Ark. Whe
 
 For narrative videos with named recurring human characters, treat visual consistency planning as part of the video task. If the request includes multiple characters, a roleplay/story adaptation, a world or character setting document, continuous segments, or visually important outfits/props, create Seedream reference images before Seedance unless the user explicitly asks for pure text-to-video.
 
-Treat audio as a required part of video delivery by default. For a single generated clip, use Seedance native audio by default. For multi-segment chains or concatenated videos, generate the video segments without native audio when practical, then create one coherent final audio track with `doubao-seed-audio` and mux it into the final video. Skip audio only when the user explicitly asks for no audio, a silent video, muted output, or visual-only output.
+Treat audio as a required part of video delivery by default. For a single generated clip, use Seedance native audio by default. For multi-segment chains or concatenated videos, do not treat audio as a late global BGM layer. First lock usable visual candidate clips, then give each candidate clip its own matching audio bed (Seedance native audio or `doubao-seed-audio`) and mux that audio into the candidate clip before final EDL assembly. The final EDL must trim video and audio together. Use a single whole-film soundtrack only when the user explicitly asks for one continuous score/voiceover, or when all segment audio is intentionally discarded and the final visual edit is already locked. Skip audio only when the user explicitly asks for no audio, a silent video, muted output, or visual-only output.
 
 For long video, multi-role, or multi-reference-image workflows, keep the main thread's context lean. Do not call image-viewing tools on high-resolution generated/reference images in the main thread. For each visual QA pass, start a fresh disposable subagent, give it only the image path(s) and the checklist, let it inspect images in its own context, and have it return a short text-only verdict. Do not reuse visual-QA subagents across checks, because their own contexts can also bloat.
 
-Use `digitalsamba/claude-code-video-toolkit@ffmpeg` as the post-production execution layer for trimming, concatenation, transitions, compression, audio extraction/muxing, and final MP4 export. It is installed locally as the `ffmpeg` skill at `the installed `ffmpeg` skill`; read that skill's `SKILL.md` when final editing, transcoding, or platform export details are needed. Seedance generates shots; disposable visual-review subagents decide what to keep; FFmpeg performs the actual cuts and encodes.
+Use `digitalsamba/claude-code-video-toolkit@ffmpeg` as the post-production execution layer for trimming, concatenation, transitions, compression, audio extraction/muxing, and final MP4 export. It is installed locally as the `ffmpeg` skill at `C:\Users\isund\.agents\skills\ffmpeg`; read that skill's `SKILL.md` when final editing, transcoding, or platform export details are needed. Seedance generates shots; disposable visual-review subagents decide what to keep; FFmpeg performs the actual cuts and encodes.
 
-Use separate references for separate phases. During **segment generation QA**, read `references/visual-review-standards.md` before asking a disposable subagent to accept/reject a generated clip. During **final assembly/editing**, read `references/clip-assembly-workflow.md` before asking a disposable subagent to join clips, classify boundaries, choose straight cuts/action cuts/reaction cuts/J/L cuts/inserts/dissolves, or request regeneration. Do not load both in the same review pass. If final assembly finds that a source clip itself must be regenerated, stop assembly, start a new segment QA/regeneration pass, and load `references/visual-review-standards.md` only in that new pass.
+Use separate references for separate phases. During **segment generation QA**, read `references/visual-review-standards.md` before asking a disposable subagent to accept/reject a generated clip. During **final assembly/editing**, read `references/clip-assembly-workflow.md` before asking a disposable subagent to join clips, classify boundaries, choose straight cuts/action cuts/reaction cuts/J/L cuts/inserts/dissolves, or request regeneration. Do not load both in the same review pass. If final assembly finds that a source clip itself must be regenerated, stop assembly, start a new segment QA/regeneration pass, and load `references/visual-review-standards.md` only in that new pass. Main-thread contact-sheet inspection is useful for orientation, but it is not a substitute for the required disposable-subagent review in multi-segment work.
 
 Phase map:
 
@@ -23,25 +23,25 @@ Phase map:
 - Character/reference-image QA: use a disposable subagent with the image checklist in this file.
 - Generated segment QA: read `references/visual-review-standards.md`; decide accept, trim handles, or regenerate.
 - Final multi-clip assembly: read `references/clip-assembly-workflow.md`; produce beat map, boundary decisions, EDL, and FFmpeg output.
-- FFmpeg details: read `the installed `ffmpeg` skill (`digitalsamba/claude-code-video-toolkit@ffmpeg`)` only when the edit needs more than simple hard cuts or export defaults.
+- FFmpeg details: read `C:\Users\isund\.agents\skills\ffmpeg\SKILL.md` only when the edit needs more than simple hard cuts or export defaults.
 
 ## Tool
 
 Run the bundled CLI:
 
 ```powershell
-python scripts/seedance_video.py --help
+python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\seedance_video.py --help
 ```
 
 Prefer the bundled Python runtime when available:
 
 ```powershell
-python scripts/seedance_video.py --help
+C:\Users\isund\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\seedance_video.py --help
 ```
 
 ## Configuration
 
-The CLI reads process environment variables first, then falls back to `~/.codex/seedance.env`.
+The CLI reads process environment variables first, then falls back to `C:\Users\isund\.codex\seedance.env`.
 
 Supported variables:
 
@@ -82,76 +82,76 @@ Never print full API keys. When checking configuration, use `--show-config --dry
 Text-to-video, poll, and download:
 
 ```powershell
-python scripts/seedance_video.py generate --prompt "一艘银色飞船掠过木星云层，电影感，缓慢推镜" --duration 10 --resolution 720p --ratio 16:9 --output-dir ./outputs
+python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\seedance_video.py generate --prompt "一艘银色飞船掠过木星云层，电影感，缓慢推镜" --duration 10 --resolution 720p --ratio 16:9 --output-dir C:\Users\isund\Documents\Codex\2026-07-05\ban\outputs
 ```
 
 Image-to-video from one first-frame image:
 
 ```powershell
-python scripts/seedance_video.py generate --prompt "从图片1开始，镜头缓慢拉近，人物轻轻回头" --image /path/to/first.png --image-role first_frame
+python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\seedance_video.py generate --prompt "从图片1开始，镜头缓慢拉近，人物轻轻回头" --image C:\path\first.png --image-role first_frame
 ```
 
 First and last frame generation:
 
 ```powershell
-python scripts/seedance_video.py generate --prompt "从图片1平滑过渡到图片2，保持人物服装一致" --image /path/to/first.png --image /path/to/last.png --image-role first_frame --image-role last_frame
+python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\seedance_video.py generate --prompt "从图片1平滑过渡到图片2，保持人物服装一致" --image C:\path\first.png --image C:\path\last.png --image-role first_frame --image-role last_frame
 ```
 
 Multimodal reference with image, video, and audio:
 
 ```powershell
-python scripts/seedance_video.py generate --prompt "参考视频1的运镜，参考音频1的背景音乐，生成图片1中的角色在科幻走廊中前进" --image /path/to/character.png --image-role reference_image --video /path/to/camera.mp4 --video-role reference_video --audio /path/to/music.mp3 --audio-role reference_audio
+python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\seedance_video.py generate --prompt "参考视频1的运镜，参考音频1的背景音乐，生成图片1中的角色在科幻走廊中前进" --image C:\path\character.png --image-role reference_image --video C:\path\camera.mp4 --video-role reference_video --audio C:\path\music.mp3 --audio-role reference_audio
 ```
 
 Video editing or extension:
 
 ```powershell
-python scripts/seedance_video.py generate --prompt "严格编辑视频1，将墙面改为蓝色，天气和光线参考图片1，其余动作和运镜不变" --video /path/to/source.mp4 --video-role reference_video --image /path/to/snow.png --image-role reference_image
+python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\seedance_video.py generate --prompt "严格编辑视频1，将墙面改为蓝色，天气和光线参考图片1，其余动作和运镜不变" --video C:\path\source.mp4 --video-role reference_video --image C:\path\snow.png --image-role reference_image
 ```
 
 Create a Draft video where supported:
 
 ```powershell
-python scripts/seedance_video.py generate --model doubao-seedance-1-5-pro-251215 --prompt "女孩抱着狐狸，镜头缓缓拉出" --image /path/to/first.png --draft --duration 6 --resolution 480p
+python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\seedance_video.py generate --model doubao-seedance-1-5-pro-251215 --prompt "女孩抱着狐狸，镜头缓缓拉出" --image C:\path\first.png --draft --duration 6 --resolution 480p
 ```
 
 Create a final video from a Draft task:
 
 ```powershell
-python scripts/seedance_video.py generate --draft-task cgt-... --model doubao-seedance-1-5-pro-251215 --resolution 720p --return-last-frame
+python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\seedance_video.py generate --draft-task cgt-... --model doubao-seedance-1-5-pro-251215 --resolution 720p --return-last-frame
 ```
 
 Create a continuous long video from segment prompts. This uses each segment's returned last frame as the next segment's first frame and optionally concatenates with FFmpeg:
 
 ```powershell
-python scripts/seedance_video.py chain --prompts-json /path/to/segments.json --duration 10 --return-last-frame --concat --output-dir ./outputs
+python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\seedance_video.py chain --prompts-json C:\path\segments.json --duration 10 --return-last-frame --concat --output-dir C:\Users\isund\Documents\Codex\2026-07-05\ban\outputs
 ```
 
 Check or fetch an existing task:
 
 ```powershell
-python scripts/seedance_video.py status cgt-...
+python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\seedance_video.py status cgt-...
 ```
 
 List or delete tasks:
 
 ```powershell
-python scripts/seedance_video.py list --status succeeded --model doubao-seedance-2-0-260128
-python scripts/seedance_video.py delete cgt-...
+python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\seedance_video.py list --status succeeded --model doubao-seedance-2-0-260128
+python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\seedance_video.py delete cgt-...
 ```
 
 Estimate token usage without calling the API:
 
 ```powershell
-python scripts/seedance_video.py estimate --duration 10 --resolution 720p --ratio 16:9 --count 15
+python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\seedance_video.py estimate --duration 10 --resolution 720p --ratio 16:9 --count 15
 ```
 
 Estimate cost and resource-package debit, and let the CLI pick a model by task goal:
 
 ```powershell
-python scripts/seedance_video.py estimate --goal cheap --duration 5 --resolution 720p --ratio 16:9 --count 20
-python scripts/seedance_video.py estimate --goal quality --duration 10 --resolution 1080p --ratio 16:9 --count 1
-python scripts/seedance_video.py estimate --model fast --duration 5 --resolution 720p
+python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\seedance_video.py estimate --goal cheap --duration 5 --resolution 720p --ratio 16:9 --count 20
+python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\seedance_video.py estimate --goal quality --duration 10 --resolution 1080p --ratio 16:9 --count 1
+python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\seedance_video.py estimate --model fast --duration 5 --resolution 720p
 ```
 
 The estimate output separates cash cost from package balance. `estimated_pay_as_you_go_cost_rmb` is the postpaid RMB estimate. `resource_package_tokens_estimated` is the expected resource-package token debit. Resource packages use the model's lower "with video input" package base price as 1:1, so higher-priced scenes such as text-to-video/no-video-input debit more package tokens than generated tokens.
@@ -173,7 +173,7 @@ Every final delivery message for a generated video must include:
 Dry-run a payload without spending tokens:
 
 ```powershell
-python scripts/seedance_video.py generate --prompt "测试" --dry-run --show-config
+python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\seedance_video.py generate --prompt "测试" --dry-run --show-config
 ```
 
 ## Prompt Optimization
@@ -211,33 +211,39 @@ Use the official rules to produce a final prompt that can be passed directly to 
    - Start a new disposable subagent for each QA pass. Give it only image paths and the checklist; require a concise text-only response with verdict, pass/fail points, and regeneration advice.
    - Discard the subagent after the check. Do not reuse the same subagent for later images or later stages.
 5. Optimize the prompt using `references/prompt-optimizer.md` unless the user requests verbatim generation.
-6. For multi-segment narrative videos, do not rely on blind `chain --concat` as the final creative workflow. Use a generate-review-revise-edit loop:
+6. For multi-segment narrative videos, do not rely on blind `chain --concat` as the final creative workflow. Use a generate-review-revise-edit loop, and actively use subagents rather than treating them as optional polish:
    - Generate one segment at a time, with `--return-last-frame` when continuity is needed.
    - After each segment finishes and downloads, create a dense visual-review pack with `scripts/video_review_tools.py pack` and assign a fresh disposable subagent to inspect the frames/contact sheets.
    - For this segment QA subagent, read and use only `references/visual-review-standards.md`. Boundary and joining decisions belong to the final assembly pass, not segment QA.
    - The subagent must return text only: pass/fail, visible defects, repeated action, identity/prop drift, weird jumps, narrative continuity, spatial continuity, pacing, recommended keep range, and whether the segment should be regenerated.
    - If the segment is not acceptable, rewrite that segment prompt using the subagent's concrete failure notes, then regenerate the segment before continuing. Prefer fixing the local segment prompt over accepting a bad segment and hoping final editing will hide it.
-   - Keep the main thread lean: do not view dense extracted frames or contact sheets in the main thread.
+   - Treat useful "optional" pickup suggestions as normal creative work, not as last resorts. If a short insert/bridge/reaction/reentry/establishing shot would materially improve continuity and the user has not constrained cost or time, generate the pickup by default instead of delivering a merely acceptable jump.
+   - Keep the main thread lean: do not view dense extracted frames or contact sheets in the main thread except for quick sanity checks. A main-thread sanity check does not satisfy the required subagent QA step.
 7. Use `generate` for single clips, multimodal reference, editing, extension, Draft, or raw content JSON. Ask only for missing prompt or source assets.
 8. Use `chain` only for quick drafts, simple continuity tests, or when the user explicitly prefers automatic chaining. For final story videos, generate segments under the visual-review loop above.
-9. Before final delivery of any multi-segment video, run a final disposable-subagent visual editing pass:
+9. Before final delivery of any multi-segment video, run a final disposable-subagent editing pass. This is required for multi-clip delivery; do not replace it with main-thread contact-sheet inspection:
    - Read `references/clip-assembly-workflow.md` and include its beat map, boundary classification, join-technique selection, montage rules, and EDL boundary schema in the subagent brief.
    - Prepare dense frames/contact sheets for all candidate clips with `scripts/video_review_tools.py pack`.
+   - Use the audio-first assembly route by default: after visual candidate clips pass segment QA, generate or preserve per-segment audio, mux that audio into each candidate clip, then pack and submit those audio-bearing clips to the final assembly subagent. The EDL should trim video and audio together.
    - Ask the subagent to produce an edit decision list (EDL) JSON: each clip path, trim `start`, trim `end`, keep reason, repeated/defective material removed, boundary type, join technique, boundary risk, and regenerate recommendation.
+   - The EDL paths should point to the audio-bearing candidate clips when audio exists. Ask the subagent to note audio continuity, micro-fades, J/L-cut opportunities, and whether a full-track audio regeneration is actually necessary.
    - The final-edit review must be story-aware, not only technical. Mark the cut as FAIL if it contains random-feeling quick cuts, unmotivated changes of subject, impossible spatial jumps, missing cause/effect between adjacent shots, emotional beats that vanish too quickly, or a montage that does not clearly read as intentional.
-   - Apply the EDL with `scripts/video_review_tools.py apply-edl` or an equivalent FFmpeg command. For anything beyond simple hard cuts, read and use the installed `ffmpeg` skill from `the installed `ffmpeg` skill` (`digitalsamba/claude-code-video-toolkit@ffmpeg`) for trim, concat, crossfade, audio mux, compression, and export patterns.
+   - Apply the EDL with `scripts/video_review_tools.py apply-edl` or an equivalent FFmpeg command. For anything beyond simple hard cuts, read and use the installed `ffmpeg` skill from `C:\Users\isund\.agents\skills\ffmpeg` (`digitalsamba/claude-code-video-toolkit@ffmpeg`) for trim, concat, crossfade, audio mux, compression, and export patterns.
    - If the assembly subagent flags a clip as requiring regeneration, treat that as a phase change: close the assembly pass, run a new segment QA pass using `references/visual-review-standards.md`, rewrite that clip prompt, regenerate the clip, and repeat final assembly instead of delivering a polished cut with a broken scene.
+   - If the assembly subagent recommends an insert/pickup that is not strictly required but would reduce a visible story, spatial, or audio jump, generate the pickup by default unless the user has asked to avoid extra generation. Do not dismiss continuity-improving pickups merely because the current cut can pass.
 10. Use `status`, `list`, and `delete` for task management.
 11. Include audio unless the user explicitly requests no audio:
-   - For one generated segment, use Seedance native audio by default.
-   - For multi-segment chains, concatenated videos, or continuous short films, disable native segment audio when practical, then use the `doubao-seed-audio` skill to create one coherent final track with ambience, Foley, music bed, voiceover, or dialogue, and mux it into the final video.
-   - Use Seed Audio for single clips only when the user asks for precise dialogue, narration, timed audio, separate stems, or a post-production workflow.
+   - For one generated segment, use Seedance native audio by default when it fits the scene.
+   - For multi-segment chains, concatenated videos, or continuous short films, prefer per-segment audio before final EDL assembly. Generate each segment without native audio when practical, create a matching Seed Audio bed for each accepted candidate segment, mux each bed into its segment, then let the final EDL trim audio and video together.
+   - Preserve source/native audio when it already fits a generated clip; do not discard good segment audio just to regenerate a whole-film soundtrack.
+   - Use a single coherent whole-film audio track only after the final EDL is locked, or when the user explicitly wants one continuous score/voiceover/music bed. Never generate a whole-film audio track from the pre-EDL storyboard and then apply it unchanged to a trimmed cut.
+   - For exact dialogue, narration, timed audio, separate stems, or post-production control, use the `doubao-seed-audio` skill and mux with FFmpeg.
 12. Store user-facing videos under the active thread `outputs` directory when possible.
 13. Report the local file path, audio/post-production path when separate, task ID, usage tokens, billing summary, visual-review verdict summary, EDL path when used, and remote URL expiry caveat. Do not expose signed URL secrets unless the user needs the direct link.
 
 ## Disposable Subagent Review
 
-Use disposable subagents for video visual review whenever the task involves multiple generated clips, dense frame extraction, repeated visual QA, or final editing decisions. This prevents the main thread request body from ballooning with image data.
+Use disposable subagents for video visual review whenever the task involves multiple generated clips, dense frame extraction, repeated visual QA, or final editing decisions. This prevents the main thread request body from ballooning with image data. For any delivered multi-clip video, disposable-subagent review is mandatory unless the user explicitly asks for a rough draft and accepts no QA.
 
 There are two review types:
 
@@ -254,6 +260,8 @@ Rules:
 - Require concise text plus machine-readable JSON paths when it writes EDL files.
 - Require boundary decisions. The subagent must explain every join between adjacent clips: boundary type, selected join technique, reason, and whether the join is acceptable or needs insert/regeneration.
 - Require narrative judgment, not just defect detection. The review must explicitly check whether each retained shot logically follows from the previous shot, whether the same subject/space/action is readable, and whether quick cuts are motivated as montage rather than accidental jumps.
+- Require proactive pickup judgment. Ask whether a short extra shot would make the result meaningfully better, not only whether regeneration is strictly necessary. Treat "recommended pickup" as actionable by default when it improves continuity and budget/time are not constrained.
+- For final assembly with audio, pass audio-bearing candidate clips to the subagent. Require the subagent to state whether EDL trims should preserve source audio, whether micro-fades/J-cuts/L-cuts are needed, and whether any whole-film audio regeneration is justified. Do not ask the subagent to evaluate a silent visual cut when the final deliverable should have segment-synchronized audio.
 - Close the subagent after receiving its final result.
 
 Recommended segment-review prompt:
@@ -272,24 +280,35 @@ Recommended final-assembly prompt:
 ```text
 你是一次性视频审片/剪辑子代理。不要返回图片、base64、截图或长工具输出。
 先按 doubao-seedance-video/references/clip-assembly-workflow.md 判断每两个片段之间应该如何拼接。
-输入视频列表：<paths>。
+输入视频列表：<paths>。如果这些候选片段已经带音频，请把 EDL path 指向带音频版本，并保持音画同剪。
 请密集抽帧，判断重复、跳跃、坏帧、动作断裂、叙事连续性、空间连续性、情绪节奏、是否存在无逻辑快切。不要只做技术审片；如果 20 秒后类似“群众/旗帜/敬礼/大全景”之间没有明确因果或蒙太奇意图，应标为 FAIL 或建议重生/重剪。输出 EDL JSON，里面必须包含 clips 和 boundaries：每个 boundary 写明 boundary_type、join_technique、reason、risk、是否需要 insert 或 regenerate。然后用 FFmpeg 生成最终剪辑。
-最终只返回：PASS/FAIL、输出视频路径、EDL 路径、每段裁点摘要、叙事问题摘要、哪些片段建议重生。
+请积极提出 pickup/insert 建议：只要 1-2 秒额外镜头能显著改善因果、空间、动作或音频连续性，就写入 regenerate/pickup 建议，不要因为当前版本勉强可读就省略。
+如果候选片段带音频，请检查音频连续性，说明是否保留分段原音、是否需要 0.05-0.15 秒微淡入淡出、是否需要 J-cut/L-cut；不要默认建议重做整条总音轨。
+最终只返回：PASS/FAIL、输出视频路径、EDL 路径、每段裁点摘要、叙事问题摘要、哪些片段建议重生或补拍。
 如果你认为某个源片段本身需要重生，只给出重生原因和 prompt_fix；不要在本次剪辑里强行遮掩它。
 ```
 
 Helper script examples:
 
 ```powershell
-python scripts/video_review_tools.py pack `
-  --video /path/to/part01.mp4 `
-  --video /path/to/part02.mp4 `
-  --output-dir ./work/video_review `
+python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\video_review_tools.py pack `
+  --video C:\path\part01.mp4 `
+  --video C:\path\part02.mp4 `
+  --output-dir C:\Users\isund\Documents\Codex\2026-07-05\ban\work\video_review `
   --fps 2 --thumb-width 320 --tile-cols 8
 
-python scripts/video_review_tools.py apply-edl `
-  --edl /path/to/visual_review_edl.json `
-  --output /path/to/final_visual_cut.mp4
+python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\video_review_tools.py apply-edl `
+  --edl C:\path\visual_review_edl.json `
+  --output C:\path\final_visual_cut.mp4
+```
+
+`apply-edl` defaults to `--video-encoder auto`. Auto mode smoke-tests common hardware H.264 encoders (`h264_nvenc`, `h264_qsv`, `h264_amf`) and falls back to `libx264` when no hardware encoder works. Override when needed:
+
+```powershell
+python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\video_review_tools.py apply-edl `
+  --edl C:\path\visual_review_edl.json `
+  --output C:\path\final_visual_cut.mp4 `
+  --video-encoder libx264
 ```
 ## Seedream Character References
 
@@ -317,8 +336,8 @@ Suggested visual-QA checklist:
 Recommended flow:
 
 ```powershell
-python ~/.codex/skills/doubao-seedream-image/scripts/seedream_image.py character --name "角色名" --description "年龄、性别、发型、脸部特征、服装、气质" --ratio 3:4 --output-dir ./outputs
-python scripts/seedance_video.py generate --prompt "参考图片1中的角色，在科幻走廊中缓慢前进，保持人物身份、脸部特征和服装一致" --image /path/to/seedream_character.png --image-role reference_image --duration 5 --resolution 720p --ratio 16:9
+python C:\Users\isund\.codex\skills\doubao-seedream-image\scripts\seedream_image.py character --name "角色名" --description "年龄、性别、发型、脸部特征、服装、气质" --ratio 3:4 --output-dir C:\Users\isund\Documents\Codex\2026-07-05\ban\outputs
+python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\seedance_video.py generate --prompt "参考图片1中的角色，在科幻走廊中缓慢前进，保持人物身份、脸部特征和服装一致" --image C:\path\seedream_character.png --image-role reference_image --duration 5 --resolution 720p --ratio 16:9
 ```
 
 For best video consistency, ask Seedream for a clean front or three-quarter portrait, clear facial features, stable lighting, fixed outfit, no text, no watermark, and no extra people.
@@ -328,18 +347,30 @@ For best video consistency, ask Seedream for a clean front or three-quarter port
 Every delivered video should include audio unless the user explicitly asks for no audio, silent video, muted output, or visual-only output. Treat audio as part of the film, not a late optional attachment.
 
 - For a single generated clip, use Seedance native audio by default when it fits the scene.
-- For multi-segment chains, concatenated videos, or continuous short films, disable native segment audio when practical, then use Seed Audio post-production by default so the final video has one coherent soundtrack instead of mismatched per-segment audio.
+- For multi-segment chains, concatenated videos, or continuous short films, the default is audio-first EDL assembly:
+  1. Generate or select acceptable visual candidate clips.
+  2. For each accepted candidate clip, preserve fitting native audio or generate a matching Seed Audio bed for that clip's full source duration.
+  3. Mux each clip's audio into that candidate clip before final assembly.
+  4. Give those audio-bearing clips to the final assembly subagent.
+  5. Apply the final EDL so the same start/end ranges trim video and audio together.
 - Use Seed Audio for ambience, Foley, sound effects, voiceover, dialogue, dubbing, reference-audio-guided voice style, subtitles/timestamps, music-like beds, or stronger timing control.
-- Lock the visual edit first when timing matters, then generate or trim audio to the final duration and mux it with FFmpeg.
+- Use 0.05-0.15 second audio micro-fades at hard joins when ambience resets or clicks are audible. Use J-cuts/L-cuts when a sound bridges a motivated scene change. Read and apply the FFmpeg skill for these edits.
+- Generate a single whole-film audio track only when the final visual EDL is already locked, or when the user explicitly asks for one continuous soundtrack/voiceover/music bed. Do not use a storyboard-duration whole-film track for a later trimmed EDL cut.
 - Generate separate dialogue, ambience, Foley, or music-like stems only when the user asks for control or the scene needs it; otherwise prefer one conservative mixed prompt.
 
 ```powershell
-python scripts/seedance_video.py generate --prompt "北京胡同里，角色缓慢逛街，电影感跟拍" --no-generate-audio --duration 10 --resolution 720p --ratio 16:9 --output-dir ./outputs
-python ~/.codex/skills/doubao-seed-audio/scripts/seed_audio.py generate --prompt "生成10秒北京胡同白天环境音：远处人声、自行车铃、脚步声、微风，无音乐无旁白" --format mp3 --output-dir ./outputs
-python ~/.codex/skills/doubao-seed-audio/scripts/seed_audio.py mux --video /path/to/silent.mp4 --audio /path/to/audio.mp3 --output /path/to/with_audio.mp4
+python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\seedance_video.py generate --prompt "北京胡同里，角色缓慢逛街，电影感跟拍" --no-generate-audio --duration 10 --resolution 720p --ratio 16:9 --output-dir C:\Users\isund\Documents\Codex\2026-07-05\ban\outputs
+python C:\Users\isund\.codex\skills\doubao-seed-audio\scripts\seed_audio.py generate --prompt "生成10秒北京胡同白天环境音：远处人声、自行车铃、脚步声、微风，无音乐无旁白" --format mp3 --output-dir C:\Users\isund\Documents\Codex\2026-07-05\ban\outputs
+python C:\Users\isund\.codex\skills\doubao-seed-audio\scripts\seed_audio.py mux --video C:\path\silent.mp4 --audio C:\path\audio.mp3 --output C:\path\with_audio.mp4
 ```
 
 If the user provides no audio direction, infer a fitting sound plan from the scene and keep it conservative: natural ambience first, then subtle Foley or music only when it supports the story. For exact dialogue or narration, keep prompts short and explicit, enable subtitles/timestamps when useful, and verify that the generated audio did not creatively continue beyond the requested line.
+
+Audio anti-patterns:
+
+- Do not generate silent visual segments, perform EDL trims, then create one approximate full-length audio bed from the original segment plan unless the final EDL is already locked and the user wants that style.
+- Do not apply a pre-EDL whole-film soundtrack unchanged after subagent trims changed segment durations.
+- Do not replace good per-segment audio with a global bed merely for simplicity.
 
 ## Notes
 
@@ -350,7 +381,6 @@ If the user provides no audio direction, infer a fitting sound plan from the sce
 - Read `references/api-quickref.md` if implementation details or payload fields are needed.
 - Read `references/prompt-optimizer.md` for official prompt engineering rules, multimodal binding syntax, and stability constraints.
 - Read `references/official-capabilities.md` for the compact official capability matrix, model-selection rules, pricing notes, parameters, and limits.
-- For exact official examples, consult the linked Volcano Engine Seedance documentation in the repository README.
+- Read `references/official-seedance-2-tutorial.md`, `references/official-video-generation-api.md`, or `references/official-prompt-guide.md` when exact official examples are needed.
 - Use `scripts/seedance_webhook_server.py` only when testing `callback_url`; it starts a local receiver, but public callbacks still require a publicly reachable URL or tunnel.
-
 

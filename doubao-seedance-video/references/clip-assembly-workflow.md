@@ -210,7 +210,6 @@ For hard cuts, `scripts/video_review_tools.py apply-edl` is enough when the EDL 
 
 For J/L cuts, crossfades, audio beds, compression, or platform export, read and apply the installed FFmpeg skill:
 
-the installed `ffmpeg` skill (`digitalsamba/claude-code-video-toolkit@ffmpeg`)
+`C:\Users\isund\.agents\skills\ffmpeg\SKILL.md`
 
 Use FFmpeg to execute the edit; do not ask Seedance to solve timeline assembly unless a clip needs regeneration.
-

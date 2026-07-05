@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import shutil
 import subprocess
 from datetime import datetime
@@ -22,6 +23,54 @@ def run(cmd: list[str]) -> None:
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         raise RuntimeError(result.stderr.strip() or f"Command failed: {' '.join(cmd)}")
+
+
+def ffmpeg_encoder_works(ffmpeg: str, encoder: str) -> bool:
+    cmd = [
+        ffmpeg,
+        "-y",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-f",
+        "lavfi",
+        "-i",
+        "color=c=black:s=64x64:d=0.1:r=24",
+        "-frames:v",
+        "1",
+        "-c:v",
+        encoder,
+        "-f",
+        "null",
+        "-",
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    return result.returncode == 0
+
+
+def choose_video_encoder(ffmpeg: str, requested: str, crf: int, preset: str) -> tuple[str, list[str]]:
+    env_choice = os.environ.get("SEEDANCE_FFMPEG_VIDEO_ENCODER", "").strip()
+    choice = env_choice or requested
+    if choice in {"libx264", "x264", "cpu"}:
+        return "libx264", ["-c:v", "libx264", "-preset", preset, "-crf", str(crf), "-pix_fmt", "yuv420p"]
+
+    hardware_args = {
+        "h264_nvenc": ["-c:v", "h264_nvenc", "-preset", "p4", "-cq", str(crf), "-pix_fmt", "yuv420p"],
+        "h264_qsv": ["-c:v", "h264_qsv", "-global_quality", str(crf), "-preset", "veryfast", "-look_ahead", "0"],
+        "h264_amf": ["-c:v", "h264_amf", "-quality", "speed", "-rc", "cqp", "-qp_i", str(crf), "-qp_p", str(crf), "-qp_b", str(crf)],
+    }
+
+    if choice and choice != "auto":
+        if choice not in hardware_args:
+            raise ValueError(f"Unsupported video encoder: {choice}")
+        if ffmpeg_encoder_works(ffmpeg, choice):
+            return choice, hardware_args[choice]
+        raise RuntimeError(f"Requested video encoder is unavailable or failed its smoke test: {choice}")
+
+    for encoder in ("h264_nvenc", "h264_qsv", "h264_amf"):
+        if ffmpeg_encoder_works(ffmpeg, encoder):
+            return encoder, hardware_args[encoder]
+    return "libx264", ["-c:v", "libx264", "-preset", preset, "-crf", str(crf), "-pix_fmt", "yuv420p"]
 
 
 def ffprobe_duration(path: Path) -> float:
@@ -203,6 +252,7 @@ def command_apply_edl(args: argparse.Namespace) -> int:
             )
         concat_inputs.append(f"[v{index}][a{index}]")
     filters.append("".join(concat_inputs) + f"concat=n={len(segments)}:v=1:a=1[v][a]")
+    encoder_name, video_encoder_args = choose_video_encoder(ffmpeg, args.video_encoder, args.crf, args.preset)
     cmd += [
         "-filter_complex",
         ";".join(filters),
@@ -210,14 +260,7 @@ def command_apply_edl(args: argparse.Namespace) -> int:
         "[v]",
         "-map",
         "[a]",
-        "-c:v",
-        "libx264",
-        "-preset",
-        args.preset,
-        "-crf",
-        str(args.crf),
-        "-pix_fmt",
-        "yuv420p",
+        *video_encoder_args,
         "-c:a",
         "aac",
         "-b:a",
@@ -227,7 +270,7 @@ def command_apply_edl(args: argparse.Namespace) -> int:
         str(output),
     ]
     run(cmd)
-    print(json.dumps({"output": str(output)}, ensure_ascii=False, indent=2))
+    print(json.dumps({"output": str(output), "video_encoder": encoder_name}, ensure_ascii=False, indent=2))
     return 0
 
 
@@ -247,6 +290,12 @@ def build_parser() -> argparse.ArgumentParser:
     apply_edl.add_argument("--output", type=Path, default=None)
     apply_edl.add_argument("--crf", type=int, default=20)
     apply_edl.add_argument("--preset", default="medium")
+    apply_edl.add_argument(
+        "--video-encoder",
+        default="auto",
+        choices=["auto", "libx264", "h264_nvenc", "h264_qsv", "h264_amf"],
+        help="Video encoder for EDL export. 'auto' smoke-tests hardware encoders and falls back to libx264.",
+    )
     apply_edl.add_argument("--audio-bitrate", default="160k")
     apply_edl.set_defaults(func=command_apply_edl)
     return parser

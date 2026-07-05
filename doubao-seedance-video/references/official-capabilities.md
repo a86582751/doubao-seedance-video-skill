@@ -1,6 +1,10 @@
 # Seedance Official Capabilities Summary
 
-This file summarizes public Volcano Engine Seedance 2.0 capabilities, pricing examples, and practical API behavior. For exact wording and current official examples, consult the Volcano Engine documentation linked from the repository README.
+This file summarizes the official Markdown docs copied into this skill. For exact wording and examples, read:
+
+- `official-seedance-2-tutorial.md`
+- `official-video-generation-api.md`
+- `official-prompt-guide.md`
 
 ## Main Models
 
@@ -14,7 +18,7 @@ This file summarizes public Volcano Engine Seedance 2.0 capabilities, pricing ex
 - Highest-quality final output: use `doubao-seedance-2-0-260128`.
 - Balanced speed/cost: use `doubao-seedance-2-0-fast-260128` for 480p/720p unless the user asks for final quality.
 - Lowest cost: use `doubao-seedance-2-0-mini-260615` for 480p/720p rough work.
-- If the user asks for 1080p or 4k, prefer `doubao-seedance-2-0-260128`; Fast/Mini public pricing and capability snippets in this package only cover 480p/720p.
+- If the user asks for 1080p or 4k, prefer `doubao-seedance-2-0-260128`; Fast/Mini pricing screenshots and capability snippets only confirm 480p/720p.
 - For a production workflow, generate cheap/fast drafts first, then regenerate selected final clips with Seedance 2.0.
 
 ## Pricing And Token Estimation
@@ -27,7 +31,7 @@ estimated tokens = (input video duration + output duration) * output width * out
 
 If there is no video input/reference, input video duration is `0`. The API response field `usage.completion_tokens` is authoritative after generation.
 
-Pricing examples captured from Volcano Engine public/console pricing references:
+Confirmed prices from the user's Volcano console screenshots:
 
 - Seedance 2.0 without video input:
   - 480p 16:9 5s: 50,220 tokens, 46 RMB / million tokens, about 2.31 RMB per clip.
@@ -52,7 +56,7 @@ Pricing examples captured from Volcano Engine public/console pricing references:
   - 480p 16:9, input 10s + output 10s: 200,880 tokens, 14 RMB / million tokens, about 2.81 RMB per clip.
   - 720p 16:9, input 10s + output 10s: 432,000 tokens, 14 RMB / million tokens, about 6.05 RMB per clip.
 
-Resource package debit rules summarized from Volcano Engine resource-package documentation:
+Resource package debit rules from the user's Volcano resource-package document:
 
 - Resource packages are prepaid and only offset online inference token consumption for the matching model family: Seedance 2.0 package for Seedance 2.0, Fast package for Fast, Mini package for Mini.
 - The package token balance uses the lower "with video input" scenario as the 1:1 base. Package base prices are 28 / 22 / 14 RMB per million package tokens for Seedance 2.0 / Fast / Mini.
@@ -173,5 +177,3 @@ Unsupported multimodal combinations include text+audio only and pure audio.
 - The Ark API rejects mixing `first_frame`/`last_frame` image roles with `reference_image`, `reference_video`, or `reference_audio` in the same request. For chained long videos, feed the previous segment's `last_frame_url` as the next segment's `first_frame`, then preserve identity with explicit text constraints.
 - Seedance 2.0 does not directly accept real-person face reference images/videos unless they are trusted platform outputs, preset virtual portraits, or authorized human assets as described in official docs.
 - Task records are retained for 7 days; generated content URLs may expire quickly. Download or transfer results promptly.
-
-
