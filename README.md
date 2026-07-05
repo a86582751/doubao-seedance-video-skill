@@ -33,7 +33,7 @@ The skill is designed to let Codex handle the whole chain in one run:
 - Ask a separate assembly subagent to judge boundaries and produce a visual EDL for the final cut.
 - Rebuild the final audio storyboard from the original script plus the locked EDL, so dialogue, narration, ambience, Foley, and music follow the actual edit.
 - Preserve Seedance native audio for simple clips, or generate a coherent Seed Audio soundtrack for long-form edits.
-- Report estimated RMB cost and resource-package token debit after the final export.
+- Report estimated RMB cost and resource-package token debit, then check Seedance Fast resource-package balance before paid long-video generation when the `volcengine-resource-query` companion skill is installed.
 
 ## What Makes It Different
 
@@ -44,7 +44,7 @@ The skill is designed to let Codex handle the whole chain in one run:
 - **Audio follows the locked cut:** long-video audio is generated after the visual edit is known, using a rebuilt final audio storyboard rather than raw EDL facts or isolated per-clip sound beds.
 - **Dialogue-aware and ambience-aware:** Seed Audio prompts can be split by scene or stem when limits, timing, dialogue, music, or acoustic continuity require it.
 - **Character continuity first:** for multi-role stories, roleplay adaptations, worldbuilding docs, or important costumes/props, Codex can create Seedream reference images before video generation.
-- **Cost-aware:** every completed generation task reports both pay-as-you-go price and resource-package debit.
+- **Cost-aware with a balance gate:** estimates report both pay-as-you-go price and resource-package debit. For Seedance 2.0 Fast plans, the workflow can call `volcengine-resource-query` after the estimate and pause before generation if the resource package is insufficient.
 
 ## Important: Subagent Permission In Codex
 
@@ -79,7 +79,7 @@ User story / assets
   -> main agent rebuilds final_storyboard_for_audio.json
   -> Seed Audio post-production
   -> FFmpeg trim / concat / mix / mux
-  -> final MP4 + cost report
+  -> final MP4 + cost and balance report
 ```
 
 The important boundary is deliberate: subagents judge visual evidence and editing facts; the main agent, which still has the original user intent and storyboard context, reconstructs the final narrative/audio plan.
@@ -217,6 +217,7 @@ Recommended local files:
 ```text
 ~/.codex/seedance.env  # Ark key: SEEDANCE_API_KEY or ARK_API_KEY
 ~/.codex/speech.env    # Speech key: SEED_AUDIO_API_KEY or SPEECH_API_KEY
+~/.codex/volcengine-billing.env  # Billing AK/SK for resource-package checks
 ```
 
 Environment variable split:
@@ -224,6 +225,7 @@ Environment variable split:
 - Seedance CLI: `SEEDANCE_API_KEY`, fallback `ARK_API_KEY`.
 - Seedream companion skill: `SEEDREAM_API_KEY`, `ARK_API_KEY`, or `SEEDANCE_API_KEY`.
 - Seed Audio companion skill: `SEED_AUDIO_API_KEY`, fallback `SPEECH_API_KEY`; it does not use `SEEDANCE_API_KEY` as the audio key.
+- Resource package query companion skill: `VOLC_ACCESS_KEY_ID` and `VOLC_SECRET_ACCESS_KEY`, fallback file `~/.codex/volcengine-billing.env`.
 
 Optional:
 
@@ -291,12 +293,22 @@ It separates:
 
 When API `usage.completion_tokens` or `usage.total_tokens` is available, the CLI uses it. Otherwise it falls back to local estimates.
 
+For Seedance 2.0 Fast long-video plans, run a resource-package preflight check after the estimate and before paid generation:
+
+```bash
+python ~/.codex/skills/volcengine-resource-query/scripts/volc_resource_query.py \
+  seedance-fast-quota --required-tokens <resource_package_tokens_estimated>
+```
+
+If the check returns `ok: false`, pause the workflow, report the required tokens, remaining tokens, and deficit, then ask the user to recharge or reduce the plan before continuing. If credentials are missing, pause paid generation until the user configures or explicitly accepts balance-unknown risk.
+
 ## Recommended Companion Skills
 
 This skill can work alone for Seedance API calls. For full production workflows, install:
 
 - [`doubao-seedream-image`](https://github.com/a86582751/doubao-seedream-image-skill) for character/reference images, role sheets, outfit/prop references, and storyboards.
 - [`doubao-seed-audio`](https://github.com/a86582751/doubao-seed-audio-skill) for ambience, Foley, voiceover, dialogue, dubbing, subtitles/timestamps, and coherent final audio.
+- [`volcengine-resource-query`](https://github.com/a86582751/volcengine-resource-query-skill) for checking Volcano Engine Seedance Fast resource-package balance before paid long-video generation.
 - `digitalsamba/claude-code-video-toolkit@ffmpeg` for advanced FFmpeg editing patterns.
 
 The `video_review_tools.py` script still uses your system `ffmpeg` and `ffprobe`, so make sure both are on `PATH`.

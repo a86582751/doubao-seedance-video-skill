@@ -1,6 +1,6 @@
 ---
 name: doubao-seedance-video
-description: "Turn natural-language stories into longer AI videos with Codex and Volcano Ark Doubao Seedance 2.0 / Fast / Mini. Use when Codex needs a complete story-to-video workflow: plan shots, optimize prompts, generate segments, chain last frames, review clips in disposable visual-QA subagents, regenerate weak segments, create or preserve audio, assemble with FFmpeg, and report cost. Use doubao-seed-audio for long-video ambience, Foley, voiceover, dialogue, dubbing, subtitles/timestamps, and coherent final soundtracks. For multi-character/story/world-setting videos, create Seedream references unless text-only is requested."
+description: "Turn natural-language stories into longer AI videos with Codex and Volcano Ark Doubao Seedance 2.0 / Fast / Mini. Use when Codex needs a complete story-to-video workflow: plan shots, optimize prompts, estimate cost, check Seedance Fast resource-package balance with volcengine-resource-query before paid generation, generate segments, chain last frames, review clips in disposable visual-QA subagents, regenerate weak segments, create or preserve audio, assemble with FFmpeg, and report cost. Use doubao-seed-audio for long-video ambience, Foley, voiceover, dialogue, dubbing, subtitles/timestamps, and coherent final soundtracks. For multi-character/story/world-setting videos, create Seedream references unless text-only is requested."
 ---
 
 # Doubao Seedance Video
@@ -156,6 +156,24 @@ python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\seedance_video
 
 The estimate output separates cash cost from package balance. `estimated_pay_as_you_go_cost_rmb` is the postpaid RMB estimate. `resource_package_tokens_estimated` is the expected resource-package token debit. Resource packages use the model's lower "with video input" package base price as 1:1, so higher-priced scenes such as text-to-video/no-video-input debit more package tokens than generated tokens.
 
+## Resource Package Balance Gate
+
+For Seedance 2.0 Fast work, after reporting any estimate that includes `resource_package_tokens_estimated` and before starting paid generation, invoke the companion `volcengine-resource-query` skill when available:
+
+```powershell
+python C:\Users\isund\.codex\skills\volcengine-resource-query\scripts\volc_resource_query.py seedance-fast-quota --required-tokens <resource_package_tokens_estimated>
+```
+
+This applies especially after long-video estimates such as: "基础视频成本估算约 102.30 元，资源包约 465 万 token；如果补拍 2-3 段，大约再加 12.8-19.2 元。"
+
+Use the query result as a preflight gate:
+
+- If `ok` is true, tell the user the Seedance Fast resource-package balance is sufficient, then continue the workflow.
+- If `ok` is false, pause the workflow before any paid Seedance, Seedream, or Seed Audio generation. Report `required_tokens`, `remaining_tokens`, and `deficit_tokens`, then tell the user to recharge or reduce the plan.
+- If credentials are missing or the query cannot be completed, pause paid generation and ask the user to configure or authorize the resource-package check, unless the user explicitly accepts balance-unknown or pay-as-you-go risk.
+
+Do not treat this as a final billing source. Volcano usage and resource-package management remain authoritative, but this gate prevents obviously underfunded long-video runs.
+
 ## Cost Reporting
 
 After every completed video generation task, report cost to the user. For a single `generate` task, report it immediately after that clip finishes. For a long-form or multi-segment task, report the aggregate cost after final editing/export is complete, and include per-segment detail when useful.
@@ -168,6 +186,7 @@ Every final delivery message for a generated video must include:
 - tokens used or estimated, including the token source (`api_usage` or `local_estimate`);
 - pay-as-you-go RMB estimate: `estimated_pay_as_you_go_cost_rmb`;
 - resource-package debit: `resource_package_tokens_estimated` and `resource_package_debit_ratio`;
+- resource-package balance check outcome when the `volcengine-resource-query` gate was run;
 - a note that final billing/remaining balance is authoritative in Volcano usage and resource-package management.
 
 Dry-run a payload without spending tokens:
@@ -198,7 +217,7 @@ Use the official rules to produce a final prompt that can be passed directly to 
 
 ## Workflow
 
-1. Use `estimate` first when the user asks about cost, resource-package balance, or remaining quota. Report both pay-as-you-go RMB and resource-package token debit when the user has a package.
+1. Use `estimate` first when the user asks about cost, resource-package balance, or remaining quota. Report both pay-as-you-go RMB and resource-package token debit when the user has a package. For Seedance 2.0 Fast plans, immediately run the Resource Package Balance Gate before any paid generation; pause and ask the user to recharge when the package is insufficient.
 2. Select the model based on task goal:
    - highest final quality, complex shots, 1080p/4k: `doubao-seedance-2-0-260128`.
    - balanced speed/cost for drafts and ordinary 480p/720p clips: `doubao-seedance-2-0-fast-260128`.
