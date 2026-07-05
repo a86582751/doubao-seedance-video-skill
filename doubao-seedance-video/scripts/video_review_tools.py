@@ -111,11 +111,19 @@ def ffprobe_has_audio(path: Path) -> bool:
 def expand_edl_segments(clips: list[dict[str, Any]]) -> list[dict[str, Any]]:
     segments: list[dict[str, Any]] = []
     for source_index, item in enumerate(clips, 1):
+        source_segment_id = (
+            item.get("source_segment_id")
+            or item.get("segment_id")
+            or item.get("clip_id")
+            or item.get("id")
+            or f"source_{source_index:02d}"
+        )
         ranges = item.get("keep_ranges")
         if isinstance(ranges, list) and ranges:
             for range_index, keep_range in enumerate(ranges, 1):
                 segment = dict(item)
                 segment["source_index"] = source_index
+                segment["source_segment_id"] = source_segment_id
                 segment["range_index"] = range_index
                 segment["start"] = keep_range.get("start", item.get("start", 0))
                 segment["end"] = keep_range.get("end", item.get("end"))
@@ -124,6 +132,7 @@ def expand_edl_segments(clips: list[dict[str, Any]]) -> list[dict[str, Any]]:
         else:
             segment = dict(item)
             segment["source_index"] = source_index
+            segment["source_segment_id"] = source_segment_id
             segment["range_index"] = 1
             segments.append(segment)
     return segments
@@ -163,6 +172,7 @@ def build_edl_summary(edl: dict[str, Any]) -> dict[str, Any]:
         source_info = sources.setdefault(path, {
             "path": path,
             "source_index": item.get("source_index"),
+            "source_segment_id": item.get("source_segment_id"),
             "duration": source_duration(path, item.get("source_duration") or item.get("duration")),
         })
         source_info["duration"] = source_info.get("duration") or source_duration(path, item.get("source_duration") or item.get("duration"))
@@ -173,6 +183,7 @@ def build_edl_summary(edl: dict[str, Any]) -> dict[str, Any]:
             "duration": round(duration, 3),
             "source_path": path,
             "source_index": item.get("source_index"),
+            "source_segment_id": item.get("source_segment_id"),
             "range_index": item.get("range_index", 1),
             "source_start": round(start, 3),
             "source_end": round(end, 3),
@@ -196,6 +207,7 @@ def build_edl_summary(edl: dict[str, Any]) -> dict[str, Any]:
         omitted_by_source.append({
             "path": path,
             "source_index": info.get("source_index"),
+            "source_segment_id": info.get("source_segment_id"),
             "source_duration": round(duration, 3) if duration is not None else None,
             "kept_ranges": [{"start": round(start, 3), "end": round(end, 3), "duration": round(end - start, 3)} for start, end in kept_ranges],
             "omitted_ranges": omitted,
@@ -207,35 +219,6 @@ def build_edl_summary(edl: dict[str, Any]) -> dict[str, Any]:
         "timeline": timeline,
         "omitted_by_source": omitted_by_source,
     }
-
-
-def build_audio_prompt(summary: dict[str, Any], story: str, style: str) -> str:
-    lines = [
-        f"为最终剪辑生成一条连续完整音频，总时长约 {summary['total_duration']} 秒。",
-        "音频必须按最终时间线设计，不要按原始分段各自起落；保持环境声、低频、混响、音乐情绪和动态连续。",
-    ]
-    if style:
-        lines.append(f"整体声音风格：{style}")
-    if story:
-        lines.append(f"故事/画面意图：{story}")
-    lines.append("最终保留画面时间线：")
-    for item in summary["timeline"]:
-        beat = item.get("beat") or item.get("keep_reason") or "根据画面动作设计对应环境声和拟音"
-        lines.append(
-            f"- {item['output_start']:.3f}-{item['output_end']:.3f}s："
-            f"来自源片段{item.get('source_index')}的{item['source_start']:.3f}-{item['source_end']:.3f}s，{beat}"
-        )
-    removed: list[str] = []
-    for source in summary["omitted_by_source"]:
-        for item in source["omitted_ranges"]:
-            if item["duration"] > 0.05:
-                removed.append(
-                    f"源片段{source.get('source_index')}的{item['start']:.3f}-{item['end']:.3f}s"
-                )
-    if removed:
-        lines.append("这些被 EDL 裁掉的画面不要在音频里表现，也不要为其保留声效高潮或转场：" + "；".join(removed) + "。")
-    lines.append("不要旁白，除非故事明确要求；不要突然重置声场；在剪辑点用自然延续、轻微声桥或环境声过渡遮住视觉切点。")
-    return "\n".join(lines)
 
 
 def safe_stem(index: int, path: Path) -> str:
@@ -396,7 +379,6 @@ def command_apply_edl(args: argparse.Namespace) -> int:
 def command_summarize_edl(args: argparse.Namespace) -> int:
     edl = json.loads(args.edl.read_text(encoding="utf-8-sig"))
     summary = build_edl_summary(edl)
-    summary["audio_prompt"] = build_audio_prompt(summary, args.story, args.audio_style)
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -431,11 +413,11 @@ def build_parser() -> argparse.ArgumentParser:
     apply_edl.add_argument("--audio-bitrate", default="160k")
     apply_edl.set_defaults(func=command_apply_edl)
 
-    summarize_edl = sub.add_parser("summarize-edl", help="Summarize kept and omitted EDL ranges for final unified audio design.")
+    summarize_edl = sub.add_parser("summarize-edl", help="Summarize kept and omitted EDL ranges as edit facts.")
     summarize_edl.add_argument("--edl", type=Path, required=True)
     summarize_edl.add_argument("--output", type=Path, default=None)
-    summarize_edl.add_argument("--story", default="", help="Short story or scene intent to include in the generated audio prompt.")
-    summarize_edl.add_argument("--audio-style", default="", help="Overall sound-design style for the generated audio prompt.")
+    summarize_edl.add_argument("--story", default="", help=argparse.SUPPRESS)
+    summarize_edl.add_argument("--audio-style", default="", help=argparse.SUPPRESS)
     summarize_edl.set_defaults(func=command_summarize_edl)
     return parser
 
