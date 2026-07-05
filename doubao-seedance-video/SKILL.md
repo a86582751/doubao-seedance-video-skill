@@ -17,6 +17,8 @@ Use `digitalsamba/claude-code-video-toolkit@ffmpeg` as the post-production execu
 
 Use separate references for separate phases. During **segment generation QA**, read `references/visual-review-standards.md` before asking a disposable subagent to accept/reject a generated clip. During **final assembly/editing**, read `references/clip-assembly-workflow.md` before asking a disposable subagent to join clips, classify boundaries, choose straight cuts/action cuts/reaction cuts/J/L cuts/inserts/dissolves, or request regeneration. Do not load both in the same review pass. If final assembly finds that a source clip itself must be regenerated, stop assembly, start a new segment QA/regeneration pass, and load `references/visual-review-standards.md` only in that new pass. Main-thread contact-sheet inspection is useful for orientation, but it is not a substitute for the required disposable-subagent review in multi-segment work.
 
+For the complete long-video production workflow, require the companion skills `doubao-seedream-image`, `doubao-seed-audio`, `volcengine-resource-query`, and the installed FFmpeg skill. Simple one-off Seedance API calls can still run with this skill alone. To check local readiness, run `scripts/check_dependencies.py`.
+
 Phase map:
 
 - Prompt writing: read `references/prompt-optimizer.md`.
@@ -73,6 +75,12 @@ Do not use the Volcano Speech/OpenSpeech API key as `SEEDANCE_API_KEY`. Seed Aud
 
 ```text
 https://console.volcengine.com/speech/new/setting/apikeys?projectName=default
+```
+
+Final resource-package preflight uses Volcano Engine IAM user AK/SK from:
+
+```text
+https://console.volcengine.com/iam/identitymanage/user
 ```
 
 Never print full API keys. When checking configuration, use `--show-config --dry-run`, which masks secrets.

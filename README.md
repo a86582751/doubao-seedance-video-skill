@@ -160,6 +160,7 @@ doubao-seedance-video/
     prompt-optimizer.md
     visual-review-standards.md
   scripts/
+    check_dependencies.py
     seedance_video.py
     seedance_webhook_server.py
     video_review_tools.py
@@ -183,6 +184,14 @@ python ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github
 ```
 
 Restart Codex after installing a new skill.
+
+For the complete long-video production workflow, also install the required companion skills listed below, then run:
+
+```bash
+python doubao-seedance-video/scripts/check_dependencies.py
+```
+
+This repository currently does not need a `requirements.txt` for Python package installation: the bundled Python scripts use the standard library. The important dependencies are Codex skills plus local `ffmpeg`/`ffprobe`, so the dependency checker reports those directly.
 
 ## Configuration
 
@@ -211,6 +220,7 @@ Volcano uses different API keys for different product families. Do not mix them:
 - **Seedance 2.0 / Fast / Mini:** use the Volcano Ark key from https://ark.volcengine.com/region:cn-beijing/apiKey?apikey=%7B%7D
 - **Seedream 5.0 Lite / image models:** use the same Volcano Ark key from https://ark.volcengine.com/region:cn-beijing/apiKey?apikey=%7B%7D
 - **Seed Audio / OpenSpeech audio generation:** use the Speech console key from https://console.volcengine.com/speech/new/setting/apikeys?projectName=default
+- **Resource package balance checks:** use Volcano Engine IAM user AK/SK from https://console.volcengine.com/iam/identitymanage/user
 
 Recommended local files:
 
@@ -302,9 +312,9 @@ python ~/.codex/skills/volcengine-resource-query/scripts/volc_resource_query.py 
 
 If the check returns `ok: false`, pause before the first paid generation task, report the required tokens, remaining tokens, and deficit, then ask the user to recharge or reduce the plan before continuing. If credentials are missing, pause paid generation until the user configures or explicitly accepts balance-unknown risk.
 
-## Recommended Companion Skills
+## Required Companion Skills
 
-This skill can work alone for Seedance API calls. For full production workflows, install:
+This skill can work alone for simple Seedance API calls. For the full long-video production workflow described in this README, install:
 
 - [`doubao-seedream-image`](https://github.com/a86582751/doubao-seedream-image-skill) for character/reference images, role sheets, outfit/prop references, and storyboards.
 - [`doubao-seed-audio`](https://github.com/a86582751/doubao-seed-audio-skill) for ambience, Foley, voiceover, dialogue, dubbing, subtitles/timestamps, and coherent final audio.
