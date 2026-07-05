@@ -12,7 +12,7 @@ Keywords: agentic AI video studio, natural-language long video, Codex video agen
 
 ## Long-Term Ambition
 
-我们的目标是：一键生成《星际穿越2》，且无需任何人工干预和专业影视制作、剪辑知识（虽然目前看上去还很遥远）。
+Our goal is one-click generation of an *Interstellar 2*-scale film, without requiring any human intervention or professional filmmaking and editing knowledge. That goal is still far away, but it is the north star.
 
 In practical terms, this means pushing Codex from "call a video API once" toward an autonomous production system that can understand a story, plan shots, generate and review clips, request pickups, edit the cut, design the final audio, check budget safety, and export a watchable film with as little human intervention as possible.
 
