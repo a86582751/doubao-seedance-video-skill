@@ -1,17 +1,24 @@
-# Natural-Language Long Video Creator for Codex + Doubao Seedance
+# Agentic Long-Video Studio for Codex + Doubao Seedance
 
-Tell Codex a story in plain language. This skill turns that request into a full AI-video production loop: plan shots, optimize Doubao Seedance prompts, generate clips, review the actual frames, regenerate weak segments, create or preserve audio, assemble the final cut with FFmpeg, and report both pay-as-you-go and resource-package cost.
+Turn one plain-language idea into a finished AI short film, with Codex acting less like a thin API wrapper and more like a small production crew: storyboarder, prompt engineer, visual QA reviewer, pickup director, offline editor, and audio post supervisor.
 
-This is not just a Seedance API wrapper. It is a Codex workflow for one-request long-video creation with Volcano Ark Doubao Seedance 2.0, Seedance 2.0 Fast, and Seedance 2.0 Mini.
+This skill is built for the messy middle of long AI video creation: clips fail, continuity drifts, transitions need pickups, native per-clip audio resets, and the final edit changes the timing. The workflow handles those problems explicitly with disposable subagent review, regenerate-or-pickup loops, EDL-based final cutting, and storyboard-aware Seed Audio post-production.
 
-Keywords: natural-language long video, Codex video agent, OpenAI Codex skill, Doubao Seedance 2.0, Volcano Ark, AI short film, story-to-video, text-to-video, image-to-video, AI audio generation, voiceover, dialogue, ambience, Foley, FFmpeg video editing, visual review, prompt optimization, resource package cost estimate.
+It supports Volcano Ark Doubao Seedance 2.0, Seedance 2.0 Fast, and Seedance 2.0 Mini.
+
+Keywords: agentic AI video studio, natural-language long video, Codex video agent, OpenAI Codex skill, Doubao Seedance 2.0, Volcano Ark, AI short film, story-to-video, text-to-video, image-to-video, subagent visual review, AI pickup shots, EDL editing, Seed Audio post-production, coherent soundtrack, dialogue, ambience, Foley, FFmpeg video editing, prompt optimization, resource package cost estimate.
 
 ## The Promise
 
 Give Codex a natural-language request like:
 
 ```text
-Turn this roleplay scene into a 60-90 second cinematic video. Keep the characters consistent, split it into shots, generate each segment, review the result, regenerate broken clips, create coherent ambience/dialogue/voiceover if needed, edit everything into one MP4, and tell me the final cost.
+Turn this roleplay scene into a 60-90 second cinematic video.
+Keep the characters consistent, split it into shots, generate each segment,
+review the actual frames, regenerate or shoot pickups when the cut is weak,
+lock the visual edit, rebuild the final audio plan from that edit,
+create coherent ambience/dialogue/voiceover, export one MP4,
+and tell me the final cost.
 ```
 
 The skill is designed to let Codex handle the whole chain in one run:
@@ -21,21 +28,57 @@ The skill is designed to let Codex handle the whole chain in one run:
 - Create Seedream character/reference images when recurring characters, outfits, props, or visual identity matter.
 - Optimize each Seedance prompt with cinematic, motion, camera, and consistency rules.
 - Generate Seedance clips from text, images, video references, audio references, first frames, or last frames.
-- Inspect dense extracted frames in disposable visual-review subagents.
-- Reject or regenerate clips with broken logic, bad continuity, strange jumps, or unusable motion.
-- Assemble the accepted clips with a story-aware edit decision list and FFmpeg.
-- Preserve Seedance native audio for simple clips, or generate a coherent final soundtrack with Seed Audio for long-form edits.
+- Inspect dense extracted frames in disposable visual-review subagents, instead of trusting the model response blindly.
+- Reject, regenerate, or add pickup shots when clips have broken logic, bad continuity, strange jumps, weak motion, or missing connective tissue.
+- Ask a separate assembly subagent to judge boundaries and produce a visual EDL for the final cut.
+- Rebuild the final audio storyboard from the original script plus the locked EDL, so dialogue, narration, ambience, Foley, and music follow the actual edit.
+- Preserve Seedance native audio for simple clips, or generate a coherent Seed Audio soundtrack for long-form edits.
 - Report estimated RMB cost and resource-package token debit after the final export.
 
 ## What Makes It Different
 
-- **Natural-language first:** the user asks for a finished video, not a pile of API calls.
-- **Long-video oriented:** the workflow plans, generates, checks, and joins multiple short AI clips.
+- **Not just generation; actual post-production:** the skill treats planning, review, pickup generation, trimming, audio, muxing, and export as one production loop.
+- **Subagent visual QA is part of the workflow:** disposable review agents inspect extracted frames/contact sheets and return concrete accept/regenerate/trim advice.
+- **Regeneration and pickups are first-class:** weak shots are not politely tolerated. If a bridge, insert, reaction, reentry, or establishing shot would make the cut smoother, the workflow can generate it.
+- **Final assembly uses an EDL:** a dedicated edit pass decides keep ranges and boundaries before FFmpeg creates the final cut.
+- **Audio follows the locked cut:** long-video audio is generated after the visual edit is known, using a rebuilt final audio storyboard rather than raw EDL facts or isolated per-clip sound beds.
+- **Dialogue-aware and ambience-aware:** Seed Audio prompts can be split by scene or stem when limits, timing, dialogue, music, or acoustic continuity require it.
 - **Character continuity first:** for multi-role stories, roleplay adaptations, worldbuilding docs, or important costumes/props, Codex can create Seedream reference images before video generation.
-- **Visual QA built in:** generated segments are reviewed from extracted frames before they are trusted.
-- **Audio-aware by default:** long videos can get a single coherent sound plan instead of mismatched per-clip audio.
-- **Real editing, not prompt-only stitching:** FFmpeg performs trimming, concatenation, transitions, audio muxing, and export.
 - **Cost-aware:** every completed generation task reports both pay-as-you-go price and resource-package debit.
+
+## Production Loop
+
+```text
+User story / assets
+  -> storyboard + continuity plan
+  -> optimized Seedance segment prompts
+  -> generate candidate clips
+  -> disposable subagent visual review
+  -> accept, regenerate, or shoot pickups
+  -> disposable subagent final assembly review
+  -> visual EDL
+  -> EDL edit-facts summary
+  -> main agent rebuilds final_storyboard_for_audio.json
+  -> Seed Audio post-production
+  -> FFmpeg trim / concat / mix / mux
+  -> final MP4 + cost report
+```
+
+The important boundary is deliberate: subagents judge visual evidence and editing facts; the main agent, which still has the original user intent and storyboard context, reconstructs the final narrative/audio plan.
+
+## Subagent Review, Regeneration, And Pickups
+
+Long AI video usually fails in small places: a hand jumps, a rocket loses scale, a character reappears in the wrong outfit, an action repeats, a crash has no setup, or two good clips simply do not cut together.
+
+This skill makes those failures visible:
+
+- `video_review_tools.py pack` extracts dense frames and contact sheets.
+- A fresh disposable subagent reviews each generated segment against visual continuity, story logic, motion quality, identity consistency, pacing, and usable keep ranges.
+- Failed or weak segments are regenerated with concrete failure notes folded back into the prompt.
+- Optional pickups are encouraged when they materially improve the film, even if the current edit is technically passable.
+- The final assembly subagent produces a standard EDL with source clip, source segment id, keep range, output timing, and boundary decision.
+
+That means Codex can do the thing human editors do constantly: keep what works, cut what does not, and ask for one more shot when the scene needs it.
 
 ## Character Reference Workflow
 
@@ -50,15 +93,39 @@ When the request involves multiple characters, roleplay adaptation, recurring ca
 
 This gives Codex a practical route from a natural-language story or roleplay log to a more stable multi-shot video, instead of hoping every clip invents the same characters again.
 
-## Audio Workflow
+## Audio Post-Production Workflow
 
-The intended output is a finished video, not a silent visual draft.
+The intended output is a finished video, not a silent visual draft and not a stack of unrelated per-clip sound beds.
 
-- **Single clip:** use Seedance native audio by default when it is good enough.
-- **Multi-segment video:** usually disable per-segment native audio, then create one coherent final track with the companion `doubao-seed-audio` skill.
-- **Supported sound design:** ambience, Foley, sound effects, voiceover, dialogue, dubbing, reference-audio-guided voice style, subtitles/timestamps, and music-like beds.
-- **Final mix:** mux the generated audio into the edited video with FFmpeg, or mix separate stems first when timing matters.
-- **User control:** skip audio only when the request explicitly says silent, muted, no audio, or visual-only.
+For long videos, the default audio route is:
+
+```text
+initial storyboard
+  + visual EDL edit facts
+  -> final_storyboard_for_audio.json
+  -> Seed Audio prompt(s)
+  -> stems or section tracks
+  -> FFmpeg mix and mux
+```
+
+Why this matters:
+
+- A pure EDL only says what frames survived; it does not know which dialogue, narration, emotional beat, or sound cue was cut.
+- The original storyboard knows the intended story, but not the final timing after review and trimming.
+- The final audio storyboard reconciles both, so the soundtrack follows the movie that was actually edited.
+
+Supported audio work includes:
+
+- coherent ambience across cuts;
+- Foley and impact design;
+- voiceover and narration;
+- dialogue and dubbing;
+- reference-audio-guided voice style;
+- subtitles/timestamps;
+- music-like beds and tension layers;
+- separate stems for dialogue, narration, ambience, Foley, music-like beds, and special effects.
+
+Seed Audio prompt limits are handled as a production choice, not a blocker. If a unified prompt would exceed provider limits or become too dense, the skill can split audio by section or stem. Preferred split points are quiet transitions, ambience changes, non-dialogue bridges, establishing shots, or places with no prominent melody. It avoids splitting through dialogue, voiceover sentences, musical downbeats, impact transients, or sustained notes.
 
 For full audio generation, install the companion `doubao-seed-audio` skill. This Seedance skill knows when to call it during long-video production.
 
