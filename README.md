@@ -1,18 +1,39 @@
-# Doubao Seedance Video Skill for Codex
+# Natural-Language Long Video Creator for Codex + Doubao Seedance
 
-A Codex skill for creating, reviewing, editing, and cost-estimating videos with Volcano Ark Doubao Seedance 2.0, Seedance 2.0 Fast, and Seedance 2.0 Mini.
+Tell Codex a story in plain language. This skill turns that request into a full AI-video production loop: plan shots, optimize Doubao Seedance prompts, generate clips, review the actual frames, regenerate weak segments, assemble the final cut with FFmpeg, and report both pay-as-you-go and resource-package cost.
 
-Keywords: Codex skill, OpenAI Codex, Doubao Seedance 2.0, Volcano Ark, video generation, AI video, text-to-video, image-to-video, FFmpeg video editing, visual review, prompt optimization, resource package cost estimate.
+This is not just a Seedance API wrapper. It is a Codex workflow for one-request long-video creation with Volcano Ark Doubao Seedance 2.0, Seedance 2.0 Fast, and Seedance 2.0 Mini.
 
-## What It Does
+Keywords: natural-language long video, Codex video agent, OpenAI Codex skill, Doubao Seedance 2.0, Volcano Ark, AI short film, story-to-video, text-to-video, image-to-video, FFmpeg video editing, visual review, prompt optimization, resource package cost estimate.
 
-- Generate Seedance 2.0 videos from text, images, video references, audio references, first frames, and last frames.
-- Chain multi-segment videos using returned last frames.
-- Optimize rough prompts using Seedance-style cinematic prompt rules.
-- Review generated clips with dense frame extraction and disposable visual-review subagents.
-- Assemble final cuts with story-aware edit decision lists and FFmpeg.
-- Estimate both pay-as-you-go RMB cost and resource-package token debit.
-- Report billing summaries after single clips or final long-form exports.
+## The Promise
+
+Give Codex a natural-language request like:
+
+```text
+Turn this roleplay scene into a 60-90 second cinematic video. Keep the characters consistent, split it into shots, generate each segment, review the result, regenerate broken clips, edit everything into one MP4, add audio if possible, and tell me the final cost.
+```
+
+The skill is designed to let Codex handle the whole chain in one run:
+
+- Read a story, script, roleplay log, or worldbuilding document.
+- Break it into a shot list and continuity plan.
+- Create or use reference images when recurring characters matter.
+- Optimize each Seedance prompt with cinematic, motion, camera, and consistency rules.
+- Generate Seedance clips from text, images, video references, audio references, first frames, or last frames.
+- Inspect dense extracted frames in disposable visual-review subagents.
+- Reject or regenerate clips with broken logic, bad continuity, strange jumps, or unusable motion.
+- Assemble the accepted clips with a story-aware edit decision list and FFmpeg.
+- Preserve or add a coherent audio track when the workflow supports it.
+- Report estimated RMB cost and resource-package token debit after the final export.
+
+## What Makes It Different
+
+- **Natural-language first:** the user asks for a finished video, not a pile of API calls.
+- **Long-video oriented:** the workflow plans, generates, checks, and joins multiple short AI clips.
+- **Visual QA built in:** generated segments are reviewed from extracted frames before they are trusted.
+- **Real editing, not prompt-only stitching:** FFmpeg performs trimming, concatenation, transitions, audio muxing, and export.
+- **Cost-aware:** every completed generation task reports both pay-as-you-go price and resource-package debit.
 
 ## Repository Layout
 

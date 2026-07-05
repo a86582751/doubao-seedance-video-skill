@@ -1,3 +1,3 @@
-display_name: Doubao Seedance Video
-short_description: Generate Seedance 2.0 videos.
-default_prompt: Generate a Seedance 2.0 video from this prompt and download the result.
+display_name: Natural-Language Seedance Studio
+short_description: Turn a natural-language story into reviewed, edited Seedance videos.
+default_prompt: "Turn this story into a complete long-form Seedance video: plan segments, optimize prompts, generate and review clips, assemble with FFmpeg, and report cost."
