@@ -18,7 +18,7 @@ The skill is designed to let Codex handle the whole chain in one run:
 
 - Read a story, script, roleplay log, or worldbuilding document.
 - Break it into a shot list and continuity plan.
-- Create or use reference images when recurring characters matter.
+- Create Seedream character/reference images when recurring characters, outfits, props, or visual identity matter.
 - Optimize each Seedance prompt with cinematic, motion, camera, and consistency rules.
 - Generate Seedance clips from text, images, video references, audio references, first frames, or last frames.
 - Inspect dense extracted frames in disposable visual-review subagents.
@@ -31,10 +31,24 @@ The skill is designed to let Codex handle the whole chain in one run:
 
 - **Natural-language first:** the user asks for a finished video, not a pile of API calls.
 - **Long-video oriented:** the workflow plans, generates, checks, and joins multiple short AI clips.
+- **Character continuity first:** for multi-role stories, roleplay adaptations, worldbuilding docs, or important costumes/props, Codex can create Seedream reference images before video generation.
 - **Visual QA built in:** generated segments are reviewed from extracted frames before they are trusted.
 - **Audio-aware by default:** long videos can get a single coherent sound plan instead of mismatched per-clip audio.
 - **Real editing, not prompt-only stitching:** FFmpeg performs trimming, concatenation, transitions, audio muxing, and export.
 - **Cost-aware:** every completed generation task reports both pay-as-you-go price and resource-package debit.
+
+## Character Reference Workflow
+
+For story-driven videos, character consistency is often the difference between "a few generated clips" and a believable short film.
+
+When the request involves multiple characters, roleplay adaptation, recurring cast members, a world/character setting document, continuous segments, or visually important clothing/props, this skill is designed to call the companion [doubao-seedream-image](https://github.com/a86582751/doubao-seedream-image-skill) workflow first:
+
+- Create clean character portraits, outfit sheets, prop references, or storyboard panels with Doubao Seedream 5.0 Lite.
+- Review those images for identity, age, hairstyle, clothing, key props, style, and unwanted text/watermarks.
+- Use the accepted images as Seedance `reference_image` inputs or as visual anchors for prompt writing.
+- Keep the same visual references across related shots whenever the model/API combination allows it.
+
+This gives Codex a practical route from a natural-language story or roleplay log to a more stable multi-shot video, instead of hoping every clip invents the same characters again.
 
 ## Audio Workflow
 
@@ -196,8 +210,8 @@ When API `usage.completion_tokens` or `usage.total_tokens` is available, the CLI
 
 This skill can work alone for Seedance API calls. For full production workflows, install:
 
-- `doubao-seedream-image` for character/reference images.
-- `doubao-seed-audio` for ambience, Foley, voiceover, dialogue, dubbing, subtitles/timestamps, and coherent final audio.
+- [`doubao-seedream-image`](https://github.com/a86582751/doubao-seedream-image-skill) for character/reference images, role sheets, outfit/prop references, and storyboards.
+- [`doubao-seed-audio`](https://github.com/a86582751/doubao-seed-audio-skill) for ambience, Foley, voiceover, dialogue, dubbing, subtitles/timestamps, and coherent final audio.
 - `digitalsamba/claude-code-video-toolkit@ffmpeg` for advanced FFmpeg editing patterns.
 
 The `video_review_tools.py` script still uses your system `ffmpeg` and `ffprobe`, so make sure both are on `PATH`.
