@@ -6,6 +6,8 @@ Use this when a disposable subagent must join Seedance clips into a coherent sho
 
 Build a readable sequence from generated clips. Do not merely remove bad frames. Every join between two clips needs an editing reason.
 
+Before judging pacing or style, run a common-sense and physics check on the retained material and each boundary. Do not let the final edit normalize a beautiful but impossible action.
+
 ## Required Inputs
 
 - Source video paths.
@@ -33,6 +35,8 @@ Before deciding cut points, write one line per source clip:
 
 If actual beats do not match intended beats, mark the clip for regeneration unless a useful substitute beat exists.
 
+Also record any common-sense or physics risk in the beat map: backward walking/running, sliding without steps, characters or crowds inside a door/hatch/elevator path, machinery clipping through bodies, impossible gravity/wind/material behavior, or a missing cause before an effect.
+
 ## Step 2: Classify Each Boundary
 
 For every boundary `A -> B`, choose one type:
@@ -45,6 +49,14 @@ For every boundary `A -> B`, choose one type:
 - **Broken boundary:** B does not logically follow A.
 
 Broken boundaries cannot be fixed by a decorative crossfade. Recut with different handles, add an insert/establishing shot, or regenerate.
+
+Treat these as broken boundaries or regeneration triggers unless a clean trim fully removes them:
+
+- A character appears to move backward while the story implies forward travel.
+- A crowd stands on or under ground that opens, a door/gate sweeps through people, or a lift/platform starts where people already occupy the mechanical path.
+- A subject changes from walking/running to sliding/floating without cause.
+- Wind, snow, smoke, hair, cloth, debris, or fluids reverse direction across a supposedly continuous action without a motivated environmental change.
+- A key object or body part teleports, swaps hands, duplicates, or passes through another object at the join.
 
 ## Step 3: Pick A Join Technique
 
@@ -153,6 +165,7 @@ Use edit when:
 Use regenerate when:
 
 - The required beat is missing.
+- The required beat depends on a common-sense or physics violation, such as backward locomotion, impossible spatial occupancy, or machinery clipping through people.
 - Boundary A -> B stays broken after trying handles.
 - The last third becomes unrelated quick cuts.
 - Needed insert/cutaway does not exist.

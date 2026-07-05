@@ -47,6 +47,7 @@ The skill is designed to let Codex handle the whole chain in one run:
 
 - **Not just generation; actual post-production:** the skill treats planning, review, pickup generation, trimming, audio, muxing, and export as one production loop.
 - **Subagent visual QA is part of the workflow:** disposable review agents inspect extracted frames/contact sheets and return concrete accept/regenerate/trim advice.
+- **Common-sense and physics checks are hard gates:** visually impressive clips can still fail if people walk backward by accident, bodies or props clip, crowds stand inside a hatch/door path, or wind/gravity/material motion contradicts the scene.
 - **Regeneration and pickups are first-class:** weak shots are not politely tolerated. If a bridge, insert, reaction, reentry, or establishing shot would make the cut smoother, the workflow can generate it.
 - **Final assembly uses an EDL:** a dedicated edit pass decides keep ranges and boundaries before FFmpeg creates the final cut.
 - **Audio follows the locked cut:** long-video audio is generated after the visual edit is known, using a rebuilt final audio storyboard rather than raw EDL facts or isolated per-clip sound beds.
@@ -99,7 +100,8 @@ Long AI video usually fails in small places: a hand jumps, a rocket loses scale,
 This skill makes those failures visible:
 
 - `video_review_tools.py pack` extracts dense frames and contact sheets.
-- A fresh disposable subagent reviews each generated segment against visual continuity, story logic, motion quality, identity consistency, pacing, and usable keep ranges.
+- A fresh disposable subagent reviews each generated segment against common sense, basic physics, visual continuity, story logic, motion quality, identity consistency, pacing, and usable keep ranges.
+- Obvious physical impossibilities are hard failures unless they can be cleanly trimmed: accidental backward walking/running, sliding without steps, floating without cause, body/prop clipping, machinery moving through people, or a hatch/door/platform opening while people occupy its danger zone.
 - Failed or weak segments are regenerated with concrete failure notes folded back into the prompt.
 - Optional pickups are encouraged when they materially improve the film, even if the current edit is technically passable.
 - The final assembly subagent produces a standard EDL with source clip, source segment id, keep range, output timing, and boundary decision.

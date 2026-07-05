@@ -252,7 +252,7 @@ Use the official rules to produce a final prompt that can be passed directly to 
    - Generate one segment at a time, with `--return-last-frame` when continuity is needed.
    - After each segment finishes and downloads, create a dense visual-review pack with `scripts/video_review_tools.py pack` and assign a fresh disposable subagent to inspect the frames/contact sheets.
    - For this segment QA subagent, read and use only `references/visual-review-standards.md`. Boundary and joining decisions belong to the final assembly pass, not segment QA.
-   - The subagent must return text only: pass/fail, visible defects, repeated action, identity/prop drift, weird jumps, narrative continuity, spatial continuity, pacing, recommended keep range, and whether the segment should be regenerated.
+   - The subagent must return text only: pass/fail, common-sense/physics violations, visible defects, repeated action, identity/prop drift, weird jumps, narrative continuity, spatial continuity, pacing, recommended keep range, and whether the segment should be regenerated.
    - If the segment is not acceptable, rewrite that segment prompt using the subagent's concrete failure notes, then regenerate the segment before continuing. Prefer fixing the local segment prompt over accepting a bad segment and hoping final editing will hide it.
    - Treat useful "optional" pickup suggestions as normal creative work, not as last resorts. If a short insert/bridge/reaction/reentry/establishing shot would materially improve continuity and the user has not constrained cost or time, generate the pickup by default instead of delivering a merely acceptable jump.
    - Keep the main thread lean: do not view dense extracted frames or contact sheets in the main thread except for quick sanity checks. A main-thread sanity check does not satisfy the required subagent QA step.
@@ -266,7 +266,7 @@ Use the official rules to produce a final prompt that can be passed directly to 
    - After the visual EDL is accepted, run `scripts/video_review_tools.py summarize-edl` to produce edit facts: final output timeline, source ranges kept, source ranges omitted, and total duration.
    - The main agent must rebuild `final_storyboard_for_audio.json` from the initial storyboard/generation plan plus the edit facts. Remove, compress, or rewrite dialogue, narration, visual beats, sound design, music cues, and emotional turns that were cut or shortened. Do not generate audio directly from the EDL alone for dialogue, narration, music, or complex narrative scenes.
    - Generate Seed Audio from `final_storyboard_for_audio.json`. Use one coherent track only when it fits the final audio storyboard and provider limits. Use per-section or per-stem Seed Audio when the final audio storyboard has dialogue timing, intentionally different acoustic spaces, music cues, or is too long for a single prompt/request.
-   - The final-edit review must be story-aware, not only technical. Mark the cut as FAIL if it contains random-feeling quick cuts, unmotivated changes of subject, impossible spatial jumps, missing cause/effect between adjacent shots, emotional beats that vanish too quickly, or a montage that does not clearly read as intentional.
+   - The final-edit review must be story-aware and common-sense-aware, not only technical. Mark the cut as FAIL if it contains random-feeling quick cuts, unmotivated changes of subject, impossible spatial jumps, impossible body/mechanical physics, missing cause/effect between adjacent shots, emotional beats that vanish too quickly, or a montage that does not clearly read as intentional.
    - Apply the EDL with `scripts/video_review_tools.py apply-edl` or an equivalent FFmpeg command. For anything beyond simple hard cuts, read and use the installed `ffmpeg` skill from `C:\Users\isund\.agents\skills\ffmpeg` (`digitalsamba/claude-code-video-toolkit@ffmpeg`) for trim, concat, crossfade, audio mux, compression, and export patterns.
    - If the assembly subagent flags a clip as requiring regeneration, treat that as a phase change: close the assembly pass, run a new segment QA pass using `references/visual-review-standards.md`, rewrite that clip prompt, regenerate the clip, and repeat final assembly instead of delivering a polished cut with a broken scene.
    - If the assembly subagent recommends an insert/pickup that is not strictly required but would reduce a visible story, spatial, or audio jump, generate the pickup by default unless the user has asked to avoid extra generation. Do not dismiss continuity-improving pickups merely because the current cut can pass.
@@ -297,6 +297,7 @@ Rules:
 - Give it only the local video paths, extracted frame/contact-sheet directory, expected story beat, and a strict output schema.
 - Tell it not to return images, screenshots, base64, or long frame-by-frame dumps.
 - Require concise text plus machine-readable JSON paths when it writes EDL files.
+- Require a common-sense and physics gate before aesthetics: people should not move backward unless intentional; bodies/props should not clip, slide, float, or teleport; moving doors, hatches, platforms, vehicles, and machinery must have clear space before opening or moving; wind, snow, smoke, hair, cloth, debris, fluids, weight, and gravity should be coherent.
 - Require boundary decisions. The subagent must explain every join between adjacent clips: boundary type, selected join technique, reason, and whether the join is acceptable or needs insert/regeneration.
 - Require narrative judgment, not just defect detection. The review must explicitly check whether each retained shot logically follows from the previous shot, whether the same subject/space/action is readable, and whether quick cuts are motivated as montage rather than accidental jumps.
 - Require proactive pickup judgment. Ask whether a short extra shot would make the result meaningfully better, not only whether regeneration is strictly necessary. Treat "recommended pickup" as actionable by default when it improves continuity and budget/time are not constrained.
@@ -310,7 +311,8 @@ Recommended segment-review prompt:
 先按 doubao-seedance-video/references/visual-review-standards.md 的标准审片。
 请检查这个 Seedance 片段的抽帧包：<manifest path>。
 预期剧情：<segment beat>。
-只返回：PASS/FAIL、可保留时间段 start/end、主要缺陷、叙事连续性、空间连续性、节奏是否像随机快切、是否需要重生、重生提示词修改建议。
+先做常识与物理基础检验：人物不能无意倒着走/跑，不能无故滑行或漂浮，身体和道具不能穿模或瞬移，地面裂开/大门/升降平台/机械运动前危险区域不能有人，风雪/烟雾/头发/衣物/重力方向要一致。明显违反则即使画面好看也判 FAIL 或要求裁剪。
+只返回：PASS/FAIL、可保留时间段 start/end、常识与物理问题、主要缺陷、叙事连续性、空间连续性、节奏是否像随机快切、是否需要重生、重生提示词修改建议。
 如果写文件，请把 JSON 写到 outputs 或 work 并只返回路径。
 ```
 
@@ -320,10 +322,10 @@ Recommended final-assembly prompt:
 你是一次性视频审片/剪辑子代理。不要返回图片、base64、截图或长工具输出。
 先按 doubao-seedance-video/references/clip-assembly-workflow.md 判断每两个片段之间应该如何拼接。
 输入视频列表：<paths>。请先做视觉剪辑，不要为了音频提前保留坏画面或坏裁点。
-请密集抽帧，判断重复、跳跃、坏帧、动作断裂、叙事连续性、空间连续性、情绪节奏、是否存在无逻辑快切。不要只做技术审片；如果 20 秒后类似“群众/旗帜/敬礼/大全景”之间没有明确因果或蒙太奇意图，应标为 FAIL 或建议重生/重剪。输出 EDL JSON，里面必须包含 clips 和 boundaries：每个 boundary 写明 boundary_type、join_technique、reason、risk、是否需要 insert 或 regenerate。然后用 FFmpeg 生成最终剪辑。
+请密集抽帧，先做常识与物理基础检验，再判断重复、跳跃、坏帧、动作断裂、叙事连续性、空间连续性、情绪节奏、是否存在无逻辑快切。常识/物理硬失败包括：人物无意倒着走/跑、无故滑行或漂浮、身体/道具/机械穿模、地面裂开或大门/升降平台/机械运动前危险区域仍有人、风雪/烟雾/头发/衣物/重力方向明显冲突。不要只做技术审片；如果 20 秒后类似“群众/旗帜/敬礼/大全景”之间没有明确因果或蒙太奇意图，应标为 FAIL 或建议重生/重剪。输出 EDL JSON，里面必须包含 clips 和 boundaries：每个 boundary 写明 boundary_type、join_technique、reason、risk、是否需要 insert 或 regenerate。然后用 FFmpeg 生成最终剪辑。
 请积极提出 pickup/insert 建议：只要 1-2 秒额外镜头能显著改善因果、空间、动作或音频连续性，就写入 regenerate/pickup 建议，不要因为当前版本勉强可读就省略。
 如果存在初始分镜，请在每个 EDL clip 写 source_segment_id；reason/beat 只写剪辑判断和画面事实，不要重写对白、旁白或最终音频脚本。只有当源音频包含必须保留的特殊声音/对白时，才标记 preserve_source_audio。
-最终只返回：PASS/FAIL、输出视频路径、EDL 路径、每段裁点摘要、被裁掉内容摘要、叙事问题摘要、哪些片段建议重生或补拍。
+最终只返回：PASS/FAIL、输出视频路径、EDL 路径、每段裁点摘要、被裁掉内容摘要、常识/物理问题摘要、叙事问题摘要、哪些片段建议重生或补拍。
 如果你认为某个源片段本身需要重生，只给出重生原因和 prompt_fix；不要在本次剪辑里强行遮掩它。
 ```
 

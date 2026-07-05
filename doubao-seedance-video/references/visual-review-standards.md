@@ -29,6 +29,7 @@ Seedance may create internal cuts inside one generated clip. For those internal 
 
 A generated segment passes only when the retained shots form one readable unit:
 
+- Basic common sense and physical plausibility pass first. Do not judge beauty, mood, or style before checking whether bodies, objects, gravity, mechanics, and space can exist.
 - The viewer can state what happened, where, and why.
 - Shot order has a clear progression: setup -> action/reaction -> consequence, or a deliberately structured montage.
 - Fast cutting is motivated by tension, comedy, celebration, chaos, or compression. If it is merely a cluster of unrelated images, mark FAIL.
@@ -36,10 +37,27 @@ A generated segment passes only when the retained shots form one readable unit:
 - Repeated beats are removed unless repetition is a deliberate joke, emphasis, ritual, or rhythm.
 - Emotional beats are held long enough to register. Do not cut away from a face, gesture, or reveal before the viewer understands it.
 
+## Common Sense And Physics Gate
+
+Run this gate before aesthetic review. Treat obvious common-sense or physics violations as hard story failures, not minor visual defects. A beautiful clip still fails when the viewer immediately thinks "that cannot happen."
+
+Check:
+
+- **Human locomotion:** people should not walk or run backward while the shot implies normal forward travel. Feet, knees, hips, torso, head direction, center of gravity, arm swing, and travel direction should agree unless the action is clearly deliberate.
+- **Ground contact and gravity:** characters should not slide without footfalls, float without cause, pass through floors, or ignore slopes, stairs, impacts, weight, or inertia.
+- **Mechanical clearance:** doors, ground hatches, elevators, platforms, vehicles, gates, and machinery must not open through people or objects. If the ground opens or a large door rises, the danger zone below/in front of it should be empty or visibly cleared first.
+- **Spatial occupancy:** crowds should avoid openings, moving machinery, collapsing ground, fire, flood, or other hazards unless the story explicitly shows panic or harm. People cannot occupy the same space as doors, walls, vehicles, or each other.
+- **Cause/effect order:** alarms, tremors, reactions, or visible triggers should precede major mechanical or disaster actions when the beat depends on them. People should move toward an entrance only after the entrance is visible or announced.
+- **Force and material behavior:** hair, clothing, smoke, snow, dust, debris, water, fire, and fabric should follow the same wind and gravity direction. Heavy metal structures need weight, delay, vibration, or hydraulic motion; they should not move like paper.
+- **Prop and body continuity:** a phone, bag, weapon, coat, handhold, scarf, or other key prop should not swap hands, vanish, duplicate, or change size during a continuous action.
+
+Prefer **edit** only when the physically wrong moment can be removed while preserving the beat. Prefer **regenerate** when the required action itself depends on the violation, such as a character walking backward into a shelter, a hatch opening under a crowd that is still standing on it, or a machine clipping through the main subject.
+
 ## Hard FAIL Conditions
 
 Mark the clip/cut as FAIL and recommend regeneration or stronger re-editing if any apply:
 
+- The clip violates basic common sense or physics in a way that a normal viewer will notice: backward locomotion, impossible sliding/floating, body/object clipping, machinery moving through people, or a hazard opening while people occupy the danger zone.
 - Adjacent shots have no visible narrative, spatial, emotional, or montage relationship.
 - A rapid montage changes subject every shot without a stated idea or escalating rhythm.
 - The scene suddenly changes location or scale without an establishing cue or motivated transition.

@@ -235,8 +235,11 @@ def command_pack(args: argparse.Namespace) -> int:
         "thumb_width": args.thumb_width,
         "clips": [],
         "review_instruction": (
-            "Inspect contact sheets and dense frames. Return text only: pass/fail, "
-            "recommended trim start/end, visible defects, repeated beats, and regenerate advice."
+            "Inspect contact sheets and dense frames. First run a common-sense/physics gate: "
+            "flag backward locomotion, sliding/floating without cause, clipping, teleporting, "
+            "people inside moving doors/hatches/platform paths, and incoherent gravity/wind/material behavior. "
+            "Return text only: pass/fail, recommended trim start/end, common-sense/physics issues, "
+            "visible defects, repeated beats, and regenerate advice."
         ),
     }
     for index, video_text in enumerate(args.videos, 1):
