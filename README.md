@@ -46,6 +46,24 @@ The skill is designed to let Codex handle the whole chain in one run:
 - **Character continuity first:** for multi-role stories, roleplay adaptations, worldbuilding docs, or important costumes/props, Codex can create Seedream reference images before video generation.
 - **Cost-aware:** every completed generation task reports both pay-as-you-go price and resource-package debit.
 
+## Important: Subagent Permission In Codex
+
+This workflow intentionally uses disposable subagents for segment review and final assembly review. In some Codex/OpenAI environments, however, the `spawn_agent` or subagent tool may be guarded by a higher-priority permission rule: the main agent cannot start a subagent unless the user explicitly asks for subagents, delegation, or parallel agent work.
+
+That means the skill instructions alone may not be enough to authorize subagent review, even when this README and `SKILL.md` describe it as part of the production workflow. To get the full intended workflow, include an explicit authorization sentence in your request, for example:
+
+```text
+Use the doubao-seedance-video workflow, including disposable subagents for visual QA and final assembly review.
+```
+
+or:
+
+```text
+You are explicitly authorized to spawn subagents for video review, editing review, and QA required by this skill.
+```
+
+If the user does not grant that permission and the active client enforces explicit subagent authorization, the main agent should not silently replace the subagent workflow with a main-thread review. It should explain the permission constraint and ask for authorization, or clearly label any fallback review as a reduced workflow.
+
 ## Production Loop
 
 ```text
