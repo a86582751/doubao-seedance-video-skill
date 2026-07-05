@@ -33,7 +33,7 @@ The skill is designed to let Codex handle the whole chain in one run:
 - Ask a separate assembly subagent to judge boundaries and produce a visual EDL for the final cut.
 - Rebuild the final audio storyboard from the original script plus the locked EDL, so dialogue, narration, ambience, Foley, and music follow the actual edit.
 - Preserve Seedance native audio for simple clips, or generate a coherent Seed Audio soundtrack for long-form edits.
-- Report estimated RMB cost and resource-package token debit, then check Seedance Fast resource-package balance before paid long-video generation when the `volcengine-resource-query` companion skill is installed.
+- Report estimated RMB cost and resource-package token debit, then run one final Seedance Fast resource-package preflight after the reviewed shot plan is locked and immediately before paid long-video generation when the `volcengine-resource-query` companion skill is installed.
 
 ## What Makes It Different
 
@@ -44,7 +44,7 @@ The skill is designed to let Codex handle the whole chain in one run:
 - **Audio follows the locked cut:** long-video audio is generated after the visual edit is known, using a rebuilt final audio storyboard rather than raw EDL facts or isolated per-clip sound beds.
 - **Dialogue-aware and ambience-aware:** Seed Audio prompts can be split by scene or stem when limits, timing, dialogue, music, or acoustic continuity require it.
 - **Character continuity first:** for multi-role stories, roleplay adaptations, worldbuilding docs, or important costumes/props, Codex can create Seedream reference images before video generation.
-- **Cost-aware with a balance gate:** estimates report both pay-as-you-go price and resource-package debit. For Seedance 2.0 Fast plans, the workflow can call `volcengine-resource-query` after the estimate and pause before generation if the resource package is insufficient.
+- **Cost-aware with a final balance gate:** estimates report both pay-as-you-go price and resource-package debit. For Seedance 2.0 Fast plans, the workflow calls `volcengine-resource-query` once after storyboard writing, review, and revision have produced a locked paid workload, then pauses before generation if the resource package is insufficient.
 
 ## Important: Subagent Permission In Codex
 
@@ -293,14 +293,14 @@ It separates:
 
 When API `usage.completion_tokens` or `usage.total_tokens` is available, the CLI uses it. Otherwise it falls back to local estimates.
 
-For Seedance 2.0 Fast long-video plans, run a resource-package preflight check after the estimate and before paid generation:
+For Seedance 2.0 Fast long-video plans, do not query billing during rough estimates or storyboard iteration. Run the online resource-package preflight once, after the final shot plan has been written, reviewed, revised, and locked with a concrete segment count, seconds per segment, model, resolution, and regenerate/pickup reserve:
 
 ```bash
 python ~/.codex/skills/volcengine-resource-query/scripts/volc_resource_query.py \
   seedance-fast-quota --required-tokens <resource_package_tokens_estimated>
 ```
 
-If the check returns `ok: false`, pause the workflow, report the required tokens, remaining tokens, and deficit, then ask the user to recharge or reduce the plan before continuing. If credentials are missing, pause paid generation until the user configures or explicitly accepts balance-unknown risk.
+If the check returns `ok: false`, pause before the first paid generation task, report the required tokens, remaining tokens, and deficit, then ask the user to recharge or reduce the plan before continuing. If credentials are missing, pause paid generation until the user configures or explicitly accepts balance-unknown risk.
 
 ## Recommended Companion Skills
 

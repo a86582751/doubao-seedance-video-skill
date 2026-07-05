@@ -1,6 +1,6 @@
 ---
 name: doubao-seedance-video
-description: "Turn natural-language stories into longer AI videos with Codex and Volcano Ark Doubao Seedance 2.0 / Fast / Mini. Use when Codex needs a complete story-to-video workflow: plan shots, optimize prompts, estimate cost, check Seedance Fast resource-package balance with volcengine-resource-query before paid generation, generate segments, chain last frames, review clips in disposable visual-QA subagents, regenerate weak segments, create or preserve audio, assemble with FFmpeg, and report cost. Use doubao-seed-audio for long-video ambience, Foley, voiceover, dialogue, dubbing, subtitles/timestamps, and coherent final soundtracks. For multi-character/story/world-setting videos, create Seedream references unless text-only is requested."
+description: "Turn natural-language stories into longer AI videos with Codex and Volcano Ark Doubao Seedance 2.0 / Fast / Mini. Use when Codex needs a complete story-to-video workflow: plan shots, optimize prompts, estimate cost, run a one-time Seedance Fast resource-package preflight with volcengine-resource-query only after the final shot plan/review is locked and immediately before paid generation, generate segments, chain last frames, review clips in disposable visual-QA subagents, regenerate weak segments, create or preserve audio, assemble with FFmpeg, and report cost. Use doubao-seed-audio for long-video ambience, Foley, voiceover, dialogue, dubbing, subtitles/timestamps, and coherent final soundtracks. For multi-character/story/world-setting videos, create Seedream references unless text-only is requested."
 ---
 
 # Doubao Seedance Video
@@ -156,15 +156,24 @@ python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\seedance_video
 
 The estimate output separates cash cost from package balance. `estimated_pay_as_you_go_cost_rmb` is the postpaid RMB estimate. `resource_package_tokens_estimated` is the expected resource-package token debit. Resource packages use the model's lower "with video input" package base price as 1:1, so higher-priced scenes such as text-to-video/no-video-input debit more package tokens than generated tokens.
 
-## Resource Package Balance Gate
+## Final Resource Package Preflight Gate
 
-For Seedance 2.0 Fast work, after reporting any estimate that includes `resource_package_tokens_estimated` and before starting paid generation, invoke the companion `volcengine-resource-query` skill when available:
+For Seedance 2.0 Fast work, run the companion `volcengine-resource-query` skill only as the final preflight before paid generation starts. Do not run this gate for rough estimates, early budget exploration, draft storyboard costs, every `estimate` output, or while the shot list is still being reviewed and revised.
+
+Run this gate only when all of the following are true:
+
+- The main agent has finished writing the full shot plan/storyboard.
+- Required storyboard review or subagent review has completed, and requested structural changes have been applied.
+- The plan has a concrete paid workload: segment count, seconds per segment, model, resolution, and a reasonable regenerate/pickup reserve.
+- The next workflow action is to start the first paid Seedance/Seedream/Seed Audio generation task.
+
+Use the final locked plan's total `resource_package_tokens_estimated`, including the planned regenerate/pickup reserve, then invoke:
 
 ```powershell
 python C:\Users\isund\.codex\skills\volcengine-resource-query\scripts\volc_resource_query.py seedance-fast-quota --required-tokens <resource_package_tokens_estimated>
 ```
 
-This applies especially after long-video estimates such as: "基础视频成本估算约 102.30 元，资源包约 465 万 token；如果补拍 2-3 段，大约再加 12.8-19.2 元。"
+This gate belongs exactly after an update like: "扩到 16 段后，基础视频成本估算约 102.30 元，资源包约 465 万 token；如果补拍 2-3 段，大约再加 12.8-19.2 元。这个更符合高质量成果展示的预算形态。" It should run before the next message/action that starts formal video generation.
 
 Use the query result as a preflight gate:
 
@@ -217,7 +226,7 @@ Use the official rules to produce a final prompt that can be passed directly to 
 
 ## Workflow
 
-1. Use `estimate` first when the user asks about cost, resource-package balance, or remaining quota. Report both pay-as-you-go RMB and resource-package token debit when the user has a package. For Seedance 2.0 Fast plans, immediately run the Resource Package Balance Gate before any paid generation; pause and ask the user to recharge when the package is insufficient.
+1. Use `estimate` first when the user asks about cost, resource-package balance, or remaining quota. Report both pay-as-you-go RMB and resource-package token debit when the user has a package. Do not run the online resource-package preflight during rough estimation or storyboard iteration.
 2. Select the model based on task goal:
    - highest final quality, complex shots, 1080p/4k: `doubao-seedance-2-0-260128`.
    - balanced speed/cost for drafts and ordinary 480p/720p clips: `doubao-seedance-2-0-fast-260128`.
@@ -231,6 +240,7 @@ Use the official rules to produce a final prompt that can be passed directly to 
    - Discard the subagent after the check. Do not reuse the same subagent for later images or later stages.
 5. Optimize the prompt using `references/prompt-optimizer.md` unless the user requests verbatim generation.
 6. For multi-segment narrative videos, do not rely on blind `chain --concat` as the final creative workflow. Use a generate-review-revise-edit loop, and actively use subagents rather than treating them as optional polish:
+   - Before generating the first paid clip, if the final storyboard has been written, reviewed, revised, and locked, run the Final Resource Package Preflight Gate for Seedance 2.0 Fast plans. If it fails, stop before generation and ask the user to recharge or reduce the plan.
    - Generate one segment at a time, with `--return-last-frame` when continuity is needed.
    - After each segment finishes and downloads, create a dense visual-review pack with `scripts/video_review_tools.py pack` and assign a fresh disposable subagent to inspect the frames/contact sheets.
    - For this segment QA subagent, read and use only `references/visual-review-standards.md`. Boundary and joining decisions belong to the final assembly pass, not segment QA.
