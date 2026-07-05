@@ -1,6 +1,6 @@
 ---
 name: doubao-seedance-video
-description: "Turn natural-language stories into longer AI videos with Codex and Volcano Ark Doubao Seedance 2.0 / Fast / Mini. Use when Codex needs a complete story-to-video workflow, not only one clip: plan shots, optimize Seedance prompts, generate text-to-video or image-to-video segments, chain last frames, review clips in disposable visual-QA subagents, regenerate weak segments, assemble with FFmpeg, preserve or add audio, and report pay-as-you-go/resource-package cost. For multi-character, story-driven, roleplay-adaptation, continuous videos, or character/world-setting docs, first create Seedream reference images unless the user requests text-only generation."
+description: "Turn natural-language stories into longer AI videos with Codex and Volcano Ark Doubao Seedance 2.0 / Fast / Mini. Use when Codex needs a complete story-to-video workflow: plan shots, optimize prompts, generate segments, chain last frames, review clips in disposable visual-QA subagents, regenerate weak segments, create or preserve audio, assemble with FFmpeg, and report cost. Use doubao-seed-audio for long-video ambience, Foley, voiceover, dialogue, dubbing, subtitles/timestamps, and coherent final soundtracks. For multi-character/story/world-setting videos, create Seedream references unless text-only is requested."
 ---
 
 # Doubao Seedance Video
@@ -313,7 +313,13 @@ For best video consistency, ask Seedream for a clean front or three-quarter port
 
 ## Required Audio And Post-Production
 
-Every delivered video should include audio unless the user explicitly asks for no audio, silent video, muted output, or visual-only output. Use Seedance native audio by default for a single generated clip. For multi-segment chains, concatenated videos, or continuous short films, use Seed Audio post-production by default so the final video has one coherent audio bed instead of mismatched per-segment audio. Use Seed Audio for single clips only when the user asks for precise dialogue, narration, timed ambience, separate stems, or stronger audio control.
+Every delivered video should include audio unless the user explicitly asks for no audio, silent video, muted output, or visual-only output. Treat audio as part of the film, not a late optional attachment.
+
+- For a single generated clip, use Seedance native audio by default when it fits the scene.
+- For multi-segment chains, concatenated videos, or continuous short films, disable native segment audio when practical, then use Seed Audio post-production by default so the final video has one coherent soundtrack instead of mismatched per-segment audio.
+- Use Seed Audio for ambience, Foley, sound effects, voiceover, dialogue, dubbing, reference-audio-guided voice style, subtitles/timestamps, music-like beds, or stronger timing control.
+- Lock the visual edit first when timing matters, then generate or trim audio to the final duration and mux it with FFmpeg.
+- Generate separate dialogue, ambience, Foley, or music-like stems only when the user asks for control or the scene needs it; otherwise prefer one conservative mixed prompt.
 
 ```powershell
 python scripts/seedance_video.py generate --prompt "北京胡同里，角色缓慢逛街，电影感跟拍" --no-generate-audio --duration 10 --resolution 720p --ratio 16:9 --output-dir ./outputs
@@ -321,7 +327,7 @@ python ~/.codex/skills/doubao-seed-audio/scripts/seed_audio.py generate --prompt
 python ~/.codex/skills/doubao-seed-audio/scripts/seed_audio.py mux --video /path/to/silent.mp4 --audio /path/to/audio.mp3 --output /path/to/with_audio.mp4
 ```
 
-Use Seed Audio separately for dialogue, narration, ambience, Foley, or music-like sound beds. Generate separate tracks when timing matters, then mix with FFmpeg before final delivery. If the user provides no audio direction, infer a fitting sound plan from the scene and keep it conservative: natural ambience first, then subtle Foley or music only when it supports the story.
+If the user provides no audio direction, infer a fitting sound plan from the scene and keep it conservative: natural ambience first, then subtle Foley or music only when it supports the story. For exact dialogue or narration, keep prompts short and explicit, enable subtitles/timestamps when useful, and verify that the generated audio did not creatively continue beyond the requested line.
 
 ## Notes
 
