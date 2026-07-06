@@ -139,6 +139,8 @@ Multi-subject duplicate-prevention package:
 - Avoid mixed languages unless required. Label minor-language dialogue.
 - For hard Chinese pronunciations, replace with common homophones and disclose the change.
 - Dialogue uses `{}`.
+- For Seedance native video prompts, use the special character convention below.
+- For separate Seed Audio post-production prompts, do not use terse symbolic notation as the final prompt. Rewrite the audio plan into director-style natural language: persistent environment, music bed, chronological sound cues, speaker labels with age/accent/timbre/emotion, exact quoted dialogue, interleaved effects, closing cue, and constraints such as `人声清楚靠前，不要让噪声盖住台词`.
 
 Special character convention:
 
