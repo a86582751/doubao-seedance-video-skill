@@ -429,19 +429,13 @@ Every delivered video should include audio unless the user explicitly asks for n
 - Use Seed Audio for ambience, Foley, sound effects, voiceover, dialogue, dubbing, reference-audio-guided voice style, subtitles/timestamps, music-like beds, or stronger timing control.
 - Use 0.05-0.15 second audio micro-fades for preserving or layering source stems, and longer crossfades when stitching generated ambience or music-like beds across planned audio section boundaries.
 - Generate a single whole-film audio track only from `final_storyboard_for_audio.json`, never from the pre-EDL storyboard and never from the raw EDL alone.
-- Convert `final_storyboard_for_audio.json` into Seed Audio prompts using audio-director grammar: persistent environment and room tone first, music bed second, chronological sound cues third, then speaker labels with age/accent/timbre/emotion, exact quoted dialogue or narration, interleaved effects, closing cue, and constraints such as "人声清楚靠前，不要让噪声盖住台词".
+- Convert `final_storyboard_for_audio.json` into Seed Audio prompts using the `doubao-seed-audio` skill's Audio Director Prompting guidance. Keep this file focused on the handoff rule: do not pass raw JSON or terse ingredient lists to Seed Audio; rewrite them into a timed audio cue sheet first.
 - Split audio into multiple Seed Audio requests when the final duration exceeds Seed Audio limits, the prompt would exceed 2048 characters, dialogue/narration needs exact timing, the film intentionally changes acoustic worlds, or music/ambience should be handled as separate stems. Choose split points at quiet transitions, room-tone/ambience changes, non-dialogue bridges, visual establishing shots, or moments without prominent music melody. Avoid splitting through dialogue, voiceover sentences, musical downbeats, impact transients, or sustained notes.
 - For complex narrative videos, treat audio like its own storyboard. Possible stems include `dialogue`, `narration`, `ambience`, `foley`, `music_like_bed`, and `special_fx`. Generate only the stems the scene needs, then mix/mux with FFmpeg. Keep a shared tone note across sections so separately generated audio keeps the same world and emotional color.
 
-Seed Audio director prompt template for a final audio section:
-
-```text
-背景持续有[room_tone / ambience]，音乐以[music]铺底，整体情绪[emotion]。先是[opening sound cue]。旁白/角色名（年龄、性别、口音、音色、气质）用[performance]语气说道："[dialogue or narration]"。对话中夹杂[foley or special_fx]。随后出现[visual-synced cue]。最后[closing sound cue]。人声清楚靠前，不要让噪声盖住台词，不要添加未写出的对白或旁白。
-```
-
 ```powershell
 python C:\Users\isund\.codex\skills\doubao-seedance-video\scripts\seedance_video.py generate --prompt "北京胡同里，角色缓慢逛街，电影感跟拍" --no-generate-audio --duration 10 --resolution 720p --ratio 16:9 --output-dir C:\Users\isund\Documents\Codex\2026-07-05\ban\outputs
-python C:\Users\isund\.codex\skills\doubao-seed-audio\scripts\seed_audio.py generate --prompt "背景持续有北京胡同白天环境音：远处人声、自行车铃、脚步声和微风。没有音乐，没有旁白。先是近处一辆自行车慢慢经过，随后脚步声从画面左侧走向远处，最后落回安静街巷底噪。整体自然、生活化，不要生成旋律。" --format mp3 --output-dir C:\Users\isund\Documents\Codex\2026-07-05\ban\outputs
+python C:\Users\isund\.codex\skills\doubao-seed-audio\scripts\seed_audio.py generate --prompt "<按 doubao-seed-audio 的 Audio Director Prompting 从 final_storyboard_for_audio.json 改写出的最终音频提示词>" --format mp3 --output-dir C:\Users\isund\Documents\Codex\2026-07-05\ban\outputs
 python C:\Users\isund\.codex\skills\doubao-seed-audio\scripts\seed_audio.py mux --video C:\path\silent.mp4 --audio C:\path\audio.mp3 --output C:\path\with_audio.mp4
 ```
 
@@ -454,7 +448,7 @@ Audio anti-patterns:
 - Do not apply a pre-EDL whole-film soundtrack unchanged after subagent trims changed segment durations.
 - Do not generate dialogue, narration, or music from `summarize-edl` alone. Use it as a mechanical edit-facts table, then rebuild the final audio storyboard from the initial storyboard and user intent.
 - Do not let sound effects, dialogue, narration beats, or music cues for deleted visuals survive into the final soundtrack unless the main agent deliberately preserves them as an offscreen sound bridge.
-- Do not pass a terse JSON summary directly as the Seed Audio prompt. Rewrite it into director grammar first; weak audio often comes from prompts that list ingredients without order, speaker traits, exact lines, or loudness constraints.
+- Do not pass a terse JSON summary directly as the Seed Audio prompt. Read the `doubao-seed-audio` skill's prompt guidance and rewrite the final audio storyboard into a proper cue sheet first.
 
 ## Notes
 

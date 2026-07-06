@@ -153,7 +153,7 @@ Supported audio work includes:
 - music-like beds and tension layers;
 - separate stems for dialogue, narration, ambience, Foley, music-like beds, and special effects.
 
-Final Seed Audio prompts are written like audio-director cue sheets, not raw JSON dumps: persistent environment first, music bed second, chronological sound cues, speaker labels with age/accent/timbre/emotion, exact quoted dialogue, interleaved effects, closing cue, and constraints such as keeping voices forward and noise below dialogue.
+Final Seed Audio prompts are not raw JSON dumps. The final audio storyboard is rewritten using the companion `doubao-seed-audio` skill's Audio Director Prompting guidance before generation.
 
 Seed Audio prompt limits are handled as a production choice, not a blocker. If a unified prompt would exceed provider limits or become too dense, the skill can split audio by section or stem. Preferred split points are quiet transitions, ambience changes, non-dialogue bridges, establishing shots, or places with no prominent melody. It avoids splitting through dialogue, voiceover sentences, musical downbeats, impact transients, or sustained notes.
 
