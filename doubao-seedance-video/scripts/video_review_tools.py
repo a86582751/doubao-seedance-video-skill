@@ -12,7 +12,17 @@ from pathlib import Path
 from typing import Any
 
 
+def bundled_ffmpeg_candidates(name: str) -> list[str]:
+    bundled_root = Path.home() / "Documents" / "Codex" / "tools"
+    matches = list(bundled_root.glob(f"ffmpeg-*-full_build/bin/{name}.exe")) if bundled_root.exists() else []
+    ordered = sorted(matches, key=lambda path: path.stat().st_mtime, reverse=True)
+    return [str(path) for path in ordered if path.exists()]
+
+
 def find_tool(name: str) -> str:
+    if name in {"ffmpeg", "ffprobe"}:
+        for candidate in bundled_ffmpeg_candidates(name):
+            return candidate
     found = shutil.which(name)
     if found:
         return found

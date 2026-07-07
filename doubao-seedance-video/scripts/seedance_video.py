@@ -487,11 +487,19 @@ def parse_prompt_items(path: Path) -> list[str]:
     raise ValueError("Prompts JSON must be a list of strings, a list of {prompt}, or {prompts:[...]}.")
 
 
+def bundled_ffmpeg_candidates(tool: str = "ffmpeg") -> list[str]:
+    bundled_root = Path.home() / "Documents" / "Codex" / "tools"
+    matches = list(bundled_root.glob(f"ffmpeg-*-full_build/bin/{tool}.exe")) if bundled_root.exists() else []
+    ordered = sorted(matches, key=lambda path: path.stat().st_mtime, reverse=True)
+    return [str(path) for path in ordered if path.exists()]
+
+
 def find_ffmpeg() -> str | None:
     for candidate in (
-        shutil.which("ffmpeg"),
+        *bundled_ffmpeg_candidates("ffmpeg"),
         str(Path("tools") / "ffmpeg" / "bin" / "ffmpeg.exe"),
         str(Path("tools") / "ffmpeg" / "ffmpeg.exe"),
+        shutil.which("ffmpeg"),
     ):
         if candidate and Path(candidate).exists():
             return candidate
