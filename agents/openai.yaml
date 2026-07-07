@@ -1,0 +1,3 @@
+display_name: Natural-Language Seedance Studio
+short_description: Turn a story into reviewed, edited Seedance videos with coherent audio.
+default_prompt: "Turn this story into a complete long-form Seedance video: plan segments, optimize prompts, generate and review clips, create coherent audio, assemble with FFmpeg, and report cost."
